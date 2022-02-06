@@ -1,0 +1,275 @@
+<?php 
+     class SSP_eva { // define the class
+	 
+ 		// ===================================================================================================
+		// Functie: Aanmaken eva_ed_evaluatie_detail Records
+		//
+		// In:	- ehId = Evaluatie-header ID
+		//		- Persoon = Geëvalueerde
+		//		- Type = *VELDSPELER/ *DOELMAN
+		// ===================================================================================================
+         
+        public function CrtEvaluatieDetail($ehId, $persoon, $type="*VELDSPELER") {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			$db2 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+			
+			// --------------------------
+			// Get categorie geëvalueerde
+			// --------------------------
+
+			$query = "Select * from ssp_ad where adCode = '$persoon'";
+		
+			if (! $db->Query($query))
+				return;
+				
+			$adRec = $db->Row();
+			
+			$voetbalCat =  $adRec->adVoetbalCat;
+			
+			if ($voetbalCat <= " ")
+				return;	
+						
+			// ------------------------------
+			// Translate to "vraag-categorie"
+			// ------------------------------
+			
+			$eva_cat = "";
+			
+			if ($type == "*VELDSPELER") {
+			
+				if ($voetbalCat == "U6")
+					$eva_cat = "*DEBUTANTJES";
+				if ($voetbalCat == "U7" or $voetbalCat == "U8" or $voetbalCat == "U9")
+					$eva_cat = "*DUIVELS";
+				if ($voetbalCat == "U10" or $voetbalCat == "U11")
+					$eva_cat = "*PREMINIEMEN";	
+				if ($voetbalCat == "U12" or $voetbalCat == "U13")
+					$eva_cat = "*MINIEMEN";	
+				if ($voetbalCat == "U14" or $voetbalCat == "U15")
+					$eva_cat = "*KNAPEN";					
+				if ($voetbalCat == "U16" or $voetbalCat == "U17")
+					$eva_cat = "*SCHOLIEREN";	
+				if ($voetbalCat == "SEN")
+					$eva_cat = "*SENIORS";	
+
+			}
+			
+			if ($type == "*DOELMAN") {
+			
+				if ($voetbalCat == "U6")
+					$eva_cat = "*DOELMAN_JEUGD";
+				if ($voetbalCat == "U7" or $voetbalCat == "U8" or $voetbalCat == "U9")
+					$eva_cat = "*DOELMAN_JEUGD";
+				if ($voetbalCat == "U10" or $voetbalCat == "U11")
+					$eva_cat = "*DOELMAN_JEUGD";	
+				if ($voetbalCat == "U12" or $voetbalCat == "U13")
+					$eva_cat = "*DOELMAN_JEUGD";	
+				if ($voetbalCat == "U14" or $voetbalCat == "U15")
+					$eva_cat = "*DOELMAN_JEUGD";					
+				if ($voetbalCat == "U16" or $voetbalCat == "U17")
+					$eva_cat = "*DOELMAN_JEUGD";	
+				if ($voetbalCat == "SEN")
+					$eva_cat = "*DOELMAN_SEN";	
+			}		
+			
+			if ($type == "*TRAINER") {
+				$eva_cat = "*TRAINER";	
+			}	
+			
+			if ($eva_cat <= " ")
+				return;
+			
+			// -------------------------------------
+			// Copiëren vragen naar evaluatie-detail
+			// -------------------------------------
+			
+			$query = "Select * from eva_vr_vragen where vrRecStatus = 'A' and vrVoetbalCat = '$eva_cat'";
+			
+			if (! $db->Query($query))
+				return;
+				
+			echo "ID = $ehId";
+		
+			while($vrRec = $db->Row()) {
+			
+				$values["edEvaluatieId"] = MySQL::SQLValue($ehId, MySQL::SQLVALUE_NUMBER);
+				$values["edPersoon"] = MySQL::SQLValue($persoon);
+				$values["edSort"] = MySQL::SQLValue($vrRec->vrSort, MySQL::SQLVALUE_NUMBER );
+				$values["edVraag"] = MySQL::SQLValue($vrRec->vrVraag);
+				$values["edQuotering"] = MySQL::SQLValue(0, MySQL::SQLVALUE_NUMBER);
+				$values["edToelichting"] = MySQL::SQLValue(" ");
+				$values["edGewicht"] = MySQL::SQLValue($vrRec->vrGewicht, MySQL::SQLVALUE_NUMBER);
+				$values["edVraagId"] = MySQL::SQLValue($vrRec->vrId, MySQL::SQLVALUE_NUMBER);			
+				$values["edToelichtingVerplicht"] = MySQL::SQLValue($vrRec->vrToelichtingVerplicht, MySQL::SQLVALUE_NUMBER);
+					
+				$result = $db2->InsertRow("eva_ed_evaluatie_detail", $values); 
+				
+			
+			
+			}
+			
+				
+		}
+		
+		
+		// ===================================================================================================
+		// Functie: Bijwerken bestand: "eva_sp_security_per_persoon" op basis van "eva_es_evaluatie_security"
+		//
+		// In: - userId
+		// ===================================================================================================
+         
+        public function UpdPersoonSecurity($userId) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object 
+
+			// -----------------------------------------
+			// Delete all security-records of given user
+			// -----------------------------------------
+			
+			$query = "Delete from  eva_sp_security_per_persoon where spUser = '$userId'";
+			if (! $db->Query($query))
+				return;
+			
+			// -----------------------------------------------
+			// Create records in "eva_sp_security_per_persoon"
+			// -----------------------------------------------
+			
+            $query = "Select * from eva_es_evaluatie_security where esAuthority = '*ALL' and esUser = '$userId'";
+			
+			if (! $db->Query($query))
+				return;
+		
+			while($esRec = $db->Row()) {
+			
+				// ------------------------------
+				// Get personen based on category
+				// ------------------------------
+				if ($esRec->esVoetbalCat > ' ') {
+				
+					$personen = self::getCatPersonen($esRec->esVoetbalCat);
+					
+					foreach ($personen as $persoon) {
+						self::crtSecPerPersoonRec($persoon, $userId, $esRec->esAuthority);
+					}
+						
+				}
+				
+				// ---------------------
+				// Directly on "persoon"
+				// ---------------------
+				
+				if ($esRec->esPersoon > ' ') {
+				
+					self::crtSecPerPersoonRec($esRec->esPersoon, $userId, $esRec->esAuthority);
+
+						
+				}	
+			
+			}
+            $query = "Select * from eva_es_evaluatie_security where esAuthority = '*OWN' and esUser = '$userId'";
+			
+			if (! $db->Query($query))
+				return;
+		
+			while($esRec = $db->Row()) {
+			
+				// ------------------------------
+				// Get personen based on category
+				// ------------------------------
+				if ($esRec->esVoetbalCat > ' ') {
+				
+					$personen = self::getCatPersonen($esRec->esVoetbalCat);
+					
+					foreach ($personen as $persoon) {
+						self::crtSecPerPersoonRec($persoon, $userId, $esRec->esAuthority);
+					}
+						
+				}
+				
+				// ---------------------
+				// Directly on "persoon"
+				// ---------------------
+				
+				if ($esRec->esPersoon > ' ') {
+				
+					self::crtSecPerPersoonRec($esRec->esPersoon, $userId, $esRec->esAuthority);
+
+						
+				}	
+			
+			}
+
+		
+			// echo "done...";
+
+		}   
+		
+		// ===================================================================================================
+		// Functie: Create eva_sp_security_per_persoon-record
+		//
+		// In: - categorie
+		// ===================================================================================================
+         
+        public function crtSecPerPersoonRec($persoon, $userId, $authority) {  
+		
+ 			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object 
+			
+			$values["spPersoon"] = MySQL::SQLValue($persoon);
+			$values["spUser"] = MySQL::SQLValue($userId);
+			$values["spAuthority"] = MySQL::SQLValue($authority);
+			$values["spDatumCreatie"] = MySQL::SQLValue(now(), MySQL::SQLVALUE_DATETIME);
+
+			
+			$result = $db->InsertRow("eva_sp_security_per_persoon", $values); 
+			
+			
+		}
+		
+		
+		// ===================================================================================================
+		// Functie: Get alle "personen" van een bepaalde "categorie"
+		//
+		// In: - categorie
+		// ===================================================================================================
+         
+        public function getCatPersonen($categorie) {  
+		
+ 			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object 
+			
+			$personen = array();
+			
+			$query = "Select * from ssp_ad where adVoetbalCat = '$categorie'";
+			
+			if (! $db->Query($query))
+				return $personen;			
+			
+			$i = 0;
+			
+			while($adRec = $db->Row()) {
+			
+				$personen[$i] = $adRec->adCode;
+				$i++;
+				
+			}
+			
+			return $personen;
+			
+				
+		}
+		// ===================================================================================================
+		// Functie: Create "security record" in file "eva_sp_security_per_persoon"
+		//
+		// In: - userId, persoonId, authority
+		// ===================================================================================================
+         
+        public function crtSecRec($userId, $persoonId, $authority) {  
+		
+ 			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object 
+
+		}
+
+		
+    }
+       
+?>

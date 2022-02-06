@@ -1,0 +1,377 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+
+<script>
+document.title = 'Schelle Sport - Webshop';
+$("meta[name='og:description']").attr('content', 'Schelle Sport - Webshop');
+</script>
+
+<script>
+
+// ---------------
+// JQUERY-function
+// ---------------
+
+$(document).ready(function(){
+
+	// - - - - - - - - - -
+	// Button "toevoegen"
+	// - - - - - - - - - -
+	
+	$('.butToevoegen').click(function() { 
+		
+		$arId = $(this).attr('id');
+		
+		$url = $('#popupToevoegen').attr('url');
+		$url = $url + "?arId=" + $arId;
+		
+		$('#popupToevoegen').attr('href', $url);
+		
+		$('#popupToevoegen').click();
+	
+	
+	});
+	
+	// - - - - - - - - -	
+	// Popup "Toevoegen"
+	// - - - - - - - - - 
+		
+	$("#popupToevoegen").colorbox({
+	
+	iframe:true, 
+	title:"", 
+	opacity: 0.5, 
+	transition: "none", 
+	close: "sluiten",  
+	width:"620px", 
+	height: "500px",
+	onClosed:function(){
+        // open the other colorBox
+		//$("#wait").css("display","block");
+		//location.reload();
+		$("#butGetWwData").click();
+	  
+		}     
+	
+	
+	});
+	
+	// - - - - - - - - - -
+	// Button "winkelwagen"
+	// - - - - - - - - - -
+	
+	$('#butWinkelwagen').click(function() { 
+
+		$url = $('#popupToevoegen').attr('url');
+		$url = $url + "?arId=0";
+		
+		$('#popupToevoegen').attr('href', $url);
+		
+		$('#popupToevoegen').click();
+	
+	
+	});	
+	
+	// - - - - - - - - - -	
+	// Popup "Winkelwagen"
+	// - - - - - - - - -  -
+		
+	$("#popupWinkelwagen").colorbox({
+	
+	iframe:true, 
+	title:"", 
+	opacity: 0.5, 
+	transition: "none", 
+	close: "sluiten",  
+	width:"620px", 
+	height: "500px",
+	onClosed:function(){
+        // open the other colorBox
+		//$("#wait").css("display","block");
+		//location.reload();
+		$("#butGetWwData").click();
+	  
+		}     
+	
+	
+	});	
+	
+	// -----------------------------------------------------------	
+	// AJAX - Ophalen aantal lijnen in winkelwagen & totaal bedrag
+	// -----------------------------------------------------------	
+	
+    $("#butGetWwData").click(function(){
+
+		// $(this).css("background-color","#ffffff");
+      
+		var date = new Date();
+		var timestamp = date.getTime();
+		$("#P0TMST").attr("value", timestamp);
+		
+
+		$.ajax({
+			url: "webshop.ajax01.php",
+			timeout: 10000,
+			cache: false,
+			data: $("#form1").serialize(),
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+			
+				$('#wwNaam').html(json.voornaamNaam);
+				$('#wwAdres').html(json.adres);
+				$('#wwPostnr').html(json.postnr);
+				$('#wwGemeente').html(json.gemeente);
+				$('#wwMail').html(json.mail);
+				$('#wwTel').html(json.tel);
+				$('#wwLidgeldStatus').html(json.lidgeldStatus);
+				$('#wwAantal').html(json.aantal);
+				$('#wwBedrag').html(json.bedrag);			
+ 					  
+			},           
+        
+			error:function(result){
+				alert('Unexpected Error');
+			}           
+        
+             
+		});
+      
+    });
+	
+	// - - -
+	// Table
+	// - - -
+	
+	var table = $('#datatable_producten').DataTable( {
+
+	"order": [[ 1, 'asc' ]],
+        "displayLength": 25,
+		"sort": false,
+		"paging": false,
+		"stateSave": true,
+		
+	
+		"language": {
+               
+			    "sProcessing": "Bezig...",
+				"sLengthMenu": "_MENU_ resultaten weergeven",
+				"sZeroRecords": "Geen resultaten gevonden",
+				"sInfo": "_START_ tot _END_ van _TOTAL_ resultaten",
+				"sInfoEmpty": "Geen resultaten om weer te geven",
+				"sInfoFiltered": " (gefilterd uit _MAX_ resultaten)",
+				"sInfoPostFix": "",
+				"sSearch": "Zoeken:",
+				"sEmptyTable": "Geen producten gevonden",
+				"sInfoThousands": ".",
+				"sLoadingRecords": "Een moment geduld aub - bezig met laden...",
+				"oPaginate": {
+					"sFirst": "Eerste",
+					"sLast": "Laatste",
+					"sNext": "Volgende",
+					"sPrevious": "Vorige"
+						   
+						}
+			
+	}
+
+	} );
+	
+	$('#butGetWwData').click();
+	
+	$('input').focus();
+
+
+	
+})
+
+</script>
+
+</head>
+
+<body>
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(Sx::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(Sx::GetClassPath("ploegen.class"));
+include_once(Sx::GetClassPath("clubs.class"));
+include_once(Sx::GetSxClassPath("sessions.class"));
+
+// -----------
+// Get USER-id
+// -----------
+
+$sessionId = $_SESSION["SEID"];
+
+$userId = SX_sessions::GetSessionUserId($sessionId);
+
+
+
+// ------
+// Header
+// ------
+
+echo "<h1>Webshop</h1>";
+
+// -------------------
+// Only when logged in
+// -------------------
+
+if ($userId == '*NONE') {
+
+	echo "<h3>De webshop is enkel toegankelijk voor leden van Schelle Sport</h3>";
+	echo "<br/>";
+	echo "<button class='login'  href='./sx/apps/login.php'>Login</button>";
+	echo "<br/>";
+	echo "<br/>";
+	return;
+
+}
+
+
+
+// ------------
+// Header-block
+// ------------
+
+echo "<div style='border: 1px solid #D2E3EA; clear: both'>";
+	
+	echo "<div style='padding: 2px; margin-right: 10px; float: left; border-left: 10px solid red'>";
+		echo "<span id='wwNaam'>&nbsp;</span><br/>";
+		echo "<span id='wwAdres'>&nbsp;</span><br/>";
+		echo "<span id='wwPostnr'>&nbsp;</span><span id='wwGemeente'>&nbsp;</span><br/>";
+		echo "<span id='wwMail'>&nbsp;</span><br/>";
+		echo "<span id='wwTel'>&nbsp;</span><br/>";
+	echo "</div>";
+	
+	echo "<div style='padding: 2px; margin-right: 10px; float: left; border-left: 10px solid red'>";
+		echo "Lidgeld: <span id='wwLidgeldStatus'>&nbsp;</span>";
+	echo "</div>";
+	
+	echo "<div style='padding: 2px; margin-right: 10px; float: left; border-left: 10px solid red'>";
+		echo "Winkelwagen # items: <span id='wwAantal'>0</span><br/>";
+		echo "Winkelwagen bedrag: € <span id='wwBedrag'>€ 0</span><br/>";
+		echo "<button id='butWinkelwagen'>Winkelwagen</button>";
+		echo "<button id='butPlaatsBestelling'>Plaats Bestelling</button>";
+		
+	echo "</div>";
+	
+	echo "<br style='clear: both'>";
+
+	echo "</div>";
+
+
+// ---------------
+// Get "producten"
+// ---------------
+
+$sqlStat  = "Select * From eba_ar_artikels ";
+
+             
+if (!$db->Query($sqlStat)) { 
+  return $sqlStat;
+}
+      
+elseif ($db->RowCount() < 1)
+  echo "Geen artikels..."; 
+
+else {
+
+
+	echo '<br/>';
+
+    // ------------------
+    // Hoofding overzicht
+    // ------------------
+    
+	echo '<table id="datatable_producten" class="display cell-border" cellspacing="0" width="100%">';
+   
+		echo '<thead style="text-align: left;">';
+
+			echo '<tr>';
+				echo '<th>Product</th>';
+				echo '<th>Afbeelding</th>';
+			echo '</tr>';
+
+		echo '</thead>';
+		
+		while ($arRec = $db->Row()) { 
+		
+			// Foto...
+			$fotoPath = '';
+			$fotos = json_decode($arRec->arFoto);
+			if ($fotos) {
+			
+				foreach ($fotos as $foto) {
+
+				  if (strpos($foto->type, "image") !== false)
+					$fotoPath = $foto->name;
+
+				}
+			}
+
+		
+    
+			echo '<tr style="valign: top">';
+			
+				// -----
+				// Naam
+				// ----
+				
+				echo "<td>"; 
+					echo "<span style='valign: bottom'><b>$arRec->arNaam</b></span>";
+					echo '<br/>';
+					echo nl2br($arRec->arOmschrijving);
+					echo '<br/>';
+					echo '<br/>';
+					echo "<button class='butToevoegen' id='$arRec->arId' style='background-color: green; color: white'>Aan winkelwagen toevoegen</button>";	
+				echo "</td>"; 
+				
+				// ----
+				// Foto
+				// ----
+         
+				echo "<td>"; 
+				
+					if ($fotoPath)
+						echo "<img src='$fotoPath'>";
+					else
+						echo "Geen afbeelding beschikbaar...";
+						
+				echo "</td>"; 
+				
+			
+			echo "</tr>";
+   
+		}
+  
+	echo "</table>";
+      
+}       
+ 
+$db->Close();  
+
+echo "<div style='display: none;'>";
+echo "<a id='popupToevoegen' url='./ssp/apps/webshop_toevoegen.php' href='./ssp/apps/webshop_toevoegen.php'>Toevoegen</a>";
+echo "<button id='butGetWwData'>Get data</button>";
+echo "</div>";
+ 
+echo "<div id='dialog' title='Basic dialog' style='display: none;'>";
+echo "<p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.</p>";
+echo "</div>";
+ 
+?>
+
+</body>
+</html>

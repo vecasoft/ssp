@@ -1,0 +1,340 @@
+<?php
+
+// We use SPOUT top read and create Excel files
+
+use Box\Spout\Reader\ReaderFactory;
+use Box\Spout\Common\Type;
+use Box\Spout\Writer\Common\Creator\WriterEntityFactory;
+use Box\Spout\Common\Entity\Row;
+
+class SSP_efin_interfaces
+{ // define the class
+
+
+    // ========================================================================================
+    //  Horeca Interface - Ophalen kasboek
+    //
+    // In:  GEEN
+    // Uit: Rekening
+    //
+    // ========================================================================================
+
+    static function GetHorecaKasboek(){
+
+        include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+
+        $kasboek = 0;
+
+        $sqlStat = "Select * from efin_xx_interface_parameters where xxCode = '*HORECA'";
+        $db->Query($sqlStat);
+
+        if ($xxRek = $db->Row())
+            $kasboek = $xxRek->xxRekening;
+
+        // -------------
+        // Einde functie
+        // -------------
+
+        return $kasboek;
+
+    }
+    // ========================================================================================
+    //  Horeca Interface - Omschrijving verplicht?
+    //
+    // In:  Ventilatie-rekening
+    //
+    // Uit: verplicht?
+    //
+    // ========================================================================================
+
+    static function CheckHorecaOmschrijvingVerplicht($pVentilatie){
+
+        include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+
+        $sqlStat = "Select count(*) as aantal from efin_vr_ventilatie_rekeningen where vrId = $pVentilatie and vrInterfaces like '%_O%'";
+        $db->Query($sqlStat);
+
+        if ($vrRec = $db->Row())
+            if ($vrRec->aantal > 0)
+                return true;
+
+        // -------------
+        // Einde functie
+        // -------------
+
+        return false;
+
+
+    }
+
+
+    // ========================================================================================
+    //  Horeca Interface - Bijwerken totalen en controle-status
+    //
+    // In:	Horeca Interface
+    //
+    // ========================================================================================
+
+    static function UpdInterfaceHoreca($pInterfaceHoreca) {
+
+        include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+        include_once(SX::GetClassPath("_db.class"));
+
+        $sqlStat = "Select * from efin_xh_interface_horeca_header where xhId = $pInterfaceHoreca";
+        $db->Query($sqlStat);
+
+        error_log($sqlStat);
+
+        if (! $xhRec = $db->Row())
+            return;
+
+        // ----------------
+        // Bedrag START-kas
+        // ----------------
+
+        $kasBedrag = ($xhRec->xhKasCent1 * (1 / 100))
+            + ($xhRec->xhKasCent2 * (1 / 50))
+            + ($xhRec->xhKasCent5 * (1 / 20))
+            + ($xhRec->xhKasCent10 * (1 / 10))
+            + ($xhRec->xhKasCent20 * (1 / 5))
+            + ($xhRec->xhKasCent50 * (1 / 2))
+            + ($xhRec->xhKasEur1)
+            + ($xhRec->xhKasEur2 * 2)
+            + ($xhRec->xhKasEur5 * 5)
+            + ($xhRec->xhKasEur10 * 10)
+            + ($xhRec->xhKasEur20 * 20)
+            + ($xhRec->xhKasEur50 * 50)
+            + ($xhRec->xhKasEur100 * 100)
+            + ($xhRec->xhKasEur200 * 200);
+
+        $kasBedrag = round($kasBedrag,2);
+
+        // -------------
+        // Verrichtingen
+        // -------------
+
+        $verrichtingenIn = 0;
+        $verrichtingenUit    = 0;
+
+        $sqlStat = "Select * from efin_xi_interface_horeca_detail where xiInterfaceHeader = $pInterfaceHoreca";
+        $db->Query($sqlStat);
+
+        while ($xiRec = $db->Row()){
+
+            $verrichtingenIn += $xiRec->xiBedragIn;
+            $verrichtingenUit += $xiRec->xiBedragUit;
+
+        }
+
+
+        $saldo = ($verrichtingenIn - $verrichtingenUit);
+        $saldo = round($saldo,2);
+
+        // -------------
+        // Controle-code
+        // -------------
+
+        $controleCode = '*OK';
+
+        if ($kasBedrag != $saldo)
+            $controleCode = '*SALDO';
+
+        // -----------------------
+        // Update Interface record
+        // -----------------------
+
+        $values = array();
+        $where = array();
+
+        $values["xhControleCode"] =  MySQL::SQLValue($controleCode, MySQL::SQLVALUE_TEXT);
+
+        $values["xhKasBedrag"] =  MySQL::SQLValue($kasBedrag, MySQL::SQLVALUE_NUMBER);
+        $values["xhVerrichtingenIn"] =  MySQL::SQLValue($verrichtingenIn, MySQL::SQLVALUE_NUMBER);
+        $values["xhVerrichtingenUit"] =  MySQL::SQLValue($verrichtingenUit, MySQL::SQLVALUE_NUMBER);
+
+        $where["xhId"] =  MySQL::SQLValue($pInterfaceHoreca, MySQL::SQLVALUE_NUMBER);
+
+        $db->UpdateRows("efin_xh_interface_horeca_header", $values, $where);
+
+        // -------------
+        // Einde functie
+        // -------------
+
+        return;
+
+    }
+    // ========================================================================================
+    //  Horeca Interface - Doorboeken openstaanden
+    //
+    // ========================================================================================
+
+    static function BoekInterfacesHoreca(){
+
+        include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+
+        $sqlStat = "Select * from efin_xh_interface_horeca_header where xhBoekStatus <> '*GEBOEKT' and xhControleCode = '*OK'";
+        $db->Query($sqlStat);
+
+        while ($xhRec = $db->Row())
+            self::BoekInterfaceHoreca($xhRec->xhId);
+
+
+
+        // -------------
+        // Einde functie
+        // -------------
+
+    }
+
+    // ========================================================================================
+    //  Horeca Interface - Doorboeken
+    //
+    // In:	Horeca Interface-record ID
+    //
+    // ========================================================================================
+
+    static function BoekInterfaceHoreca($pInterfaceHoreca){
+
+        include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+
+        // ---------------------
+        // Ophalen basisgegevens
+        // ---------------------
+
+        $sqlStat = "Select * from efin_xh_interface_horeca_header where xhId = $pInterfaceHoreca";
+        $db->Query($sqlStat);
+
+        if (! $xhRec = $db->Row())
+            return;
+
+        if ($xhRec->xtControleCode != '*OK')
+            return;
+
+        $kasboek = self::GetHorecaKasboek();
+
+        if (! $kasboek)
+            return;
+
+        // --------------------
+        // Boek verkoop tickets
+        // --------------------
+
+        // Groepeer per tariefcode...
+        $tariefCodes = array();
+        $tarieven = array();
+        $aantallen = array();
+
+        if ($xtRec->xtTicketTariefCode1 and $xtRec->xtTicketAantal1) {
+
+            $tariefCodes[] = $xtRec->xtTicketTariefCode1;
+            $aantallen[] = $xtRec->xtTicketAantal1;
+            $tarieven[] = $xtRec->xtTicketTarief1;
+
+        }
+
+        if ($xtRec->xtTicketTariefCode2 and $xtRec->xtTicketAantal2) {
+
+            $key = array_search($xtRec->xtTicketTariefCode2, $tariefCodes);
+
+            if ($key === false) {
+                $tariefCodes[] = $xtRec->xtTicketTariefCode2;
+                $aantallen[] = $xtRec->xtTicketAantal2;
+                $tarieven[] = $xtRec->xtTicketTarief2;
+            } else
+                $aantallen[$key] += $xtRec->xtTicketAantal2;
+
+        }
+
+        if ($xtRec->xtTicketTariefCode3 and $xtRec->xtTicketAantal3) {
+
+            $key = array_search($xtRec->xtTicketTariefCode3, $tariefCodes);
+
+            if ($key === false) {
+                $tariefCodes[] = $xtRec->xtTicketTariefCode3;
+                $aantallen[] = $xtRec->xtTicketAantal3;
+                $tarieven[] = $xtRec->xtTicketTarief3;
+            } else
+                $aantallen[$key] += $xtRec->xtTicketAantal3;
+
+        }
+
+        if ($xtRec->xtTicketTariefCode4 and $xtRec->xtTicketAantal4) {
+
+            $key = array_search($xtRec->xtTicketTariefCode4, $tariefCodes);
+
+            if ($key === false) {
+                $tariefCodes[] = $xtRec->xtTicketTariefCode4;
+                $tarieven[] = $xtRec->xtTicketTarief4;
+                $aantallen[] = $xtRec->xtTicketAantal4;
+            } else
+                $aantallen[$key] += $xtRec->xtTicketAantal4;
+
+        }
+
+        foreach ($tariefCodes as $key=>$tariefCode) {
+
+            $ticketTarief = $tarieven[$key];
+            $aantal = $aantallen[$key];
+
+            self::BoekTicketingTicketverkoop($kasboek, $xtRec->xtDatum, $tariefCode, $ticketTarief, $aantal, $xtRec->xtUserCreatie, $pInterfaceTicketing);
+
+        }
+
+        // ---------------------------
+        // Boek vergoeding medewerkers
+        // ---------------------------
+
+        if ($xtRec->xtMedewerker1 and ($xtRec->xtUitbetalingMedewerker1 > 0))
+            self::BoekTicketingVergoeding($kasboek,  $xtRec->xtDatum, $xtRec->xtMedewerker1, $xtRec->xtUitbetalingMedewerker1, $xtRec->xtUserCreatie, $pInterfaceTicketing);
+
+        if ($xtRec->xtMedewerker2 and ($xtRec->xtUitbetalingMedewerker2 > 0))
+            self::BoekTicketingVergoeding($kasboek,  $xtRec->xtDatum, $xtRec->xtMedewerker2, $xtRec->xtUitbetalingMedewerker2, $xtRec->xtUserCreatie, $pInterfaceTicketing);
+
+        if ($xtRec->xtMedewerker3 and ($xtRec->xtUitbetalingMedewerker3 > 0))
+            self::BoekTicketingVergoeding($kasboek,  $xtRec->xtDatum, $xtRec->xtMedewerker3, $xtRec->xtUitbetalingMedewerker3, $xtRec->xtUserCreatie, $pInterfaceTicketing);
+
+        // --------------------------
+        // Boek eventueel kasverschil
+        // --------------------------
+
+        if ($xtRec->xtSaldoBedrag != 0 and $xtRec->xtSaldoBedrag != null )
+            self::BoekTicketingKasverschil($kasboek, $xtRec->xtDatum,$xtRec->xtSaldoBedrag, $xtRec->xtSaldoVerschilReden, $xtRec->xtUserCreatie, $pInterfaceTicketing);
+
+        // ------------------
+        // Herberekenen saldi
+        // ------------------
+
+        self::FillRekeningDetailSaldi($kasboek);
+
+        // ---------------
+        // Set Boek-status
+        // ---------------
+
+        $curDateTime = date('Y-m-d H:i:s');
+
+        $values = array();
+        $where = array();
+
+        $values["xtBoekStatus"] =  MySQL::SQLValue('*GEBOEKT', MySQL::SQLVALUE_TEXT);
+        $values["xtBoekDatum"] = MySQL::SQLValue($curDateTime, MySQL::SQLVALUE_DATETIME);
+
+        $where["xtId"] =  MySQL::SQLValue($pInterfaceTicketing, MySQL::SQLVALUE_NUMBER);
+
+        $db->UpdateRows("efin_xt_interface_ticketing", $values, $where);
+
+        // -------------
+        // Einde functie
+        // -------------
+
+
+    }
+
+
+
+    // -----------
+    // Einde class
+    // -----------
+
+}
+
+?>

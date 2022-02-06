@@ -1,0 +1,229 @@
+<?php 
+     class SSP_eba { // define the class
+	 
+	  	// ===================================================================================================
+		// Functie: Maat verplicht 
+		//
+		// In:	- artikelId = artikel ID
+		//
+		// Return:  false/true
+		//
+		// ===================================================================================================
+         
+        public function ChkMaatVerplicht($artikelId) {  
+		
+			 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			
+			$query = "Select * from eba_am_artikelmaten where amArtikel = $artikelId";
+						
+			if (! $db->Query($query))
+				return false;
+				
+			if ($amRec = $db->Row())	
+				return true;
+				
+			return false;
+					
+		
+		}
+	 
+	 
+ 		// ===================================================================================================
+		// Functie: Aanmaken eba_bd_bestel_detail Records in geval van een "pakket" + zetten prijs in bestel-header
+		//
+		// In:	- bestelId = Bestel-header ID
+		// 		- pakketId = Pakket-ID
+		//
+		// ===================================================================================================
+         
+        public function CrtBestelDetail($bestelId, $pakketId, $userId) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			$db2 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+					
+			// --------------
+			// Only if pakket
+			// --------------
+			
+			if ($pakketId <= 0)
+				return;
+			
+			
+			// --------------------------------------------
+			// Copieer alle pakket-artikels naar bestelling
+			// --------------------------------------------
+
+			$query = "Select * from eba_pa_pakket_artikels where paPakket = $pakketId";
+		
+
+			if (! $db->Query($query))
+				return;
+	
+			while($paRec = $db->Row()) {
+			
+				$values["bdBestelling"] = MySQL::SQLValue($bestelId, MySQL::SQLVALUE_NUMBER);
+				$values["bdArtikel"] = MySQL::SQLValue($paRec->paArtikel, MySQL::SQLVALUE_NUMBER );
+				$values["bdPrijs"] = MySQL::SQLValue(0, MySQL::SQLVALUE_NUMBER );
+				$values["bdPakket"] = MySQL::SQLValue($pakketId, MySQL::SQLVALUE_NUMBER );
+				$values["bdStatus"] = MySQL::SQLValue('*INGEBRACHT');
+				$values["bdDatumCreatie"] = MySQL::SQLValue(now(),MySQL::SQLVALUE_DATETIME );		
+				$values["bdDatumUpdate"] = MySQL::SQLValue(now(),MySQL::SQLVALUE_DATETIME );								
+				$values["bdUserCreatie"] = MySQL::SQLValue($userId);				
+				$values["bdUserUpdate"] = MySQL::SQLValue($userId);
+				
+				$result = $db2->InsertRow("eba_bd_bestel_detail", $values); 
+			
+			
+			}
+			
+			// ---------------------
+			// Ophalen pakket-header
+			// ---------------------
+
+			$query = "Select * from eba_pk_pakketten where pkId = $pakketId";
+			
+			if (! $db->Query($query))
+				return;
+				
+			if ($pkRec = $db->Row()) {
+			
+				$query = "Update eba_bh_bestel_headers set bhTotaalPrijs = $pkRec->pkPrijs where bhId = $bestelId";
+				$db2->Query($query);
+				
+			}
+				
+				
+		}
+		
+ 		// ===================================================================================================
+		// Functie: Testen bestelling
+		//
+		// In:	- bestelId = Bestel-header ID
+		//
+		// ===================================================================================================
+         
+        public function ChkBestelling($bestelId) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			
+
+			self::SetBhControle($bestelId, '*OK');
+			
+			// -----------------------
+			// Check alle bestellijnen
+			// -----------------------
+
+			$query = "Select * from eba_bd_bestel_detail where bdBestelling = $bestelId";
+			
+			// echo $query;
+					
+			if (! $db->Query($query))
+				return;
+	
+			$SetHeaderCode = false;
+	
+			while($bdRec = $db->Row()) {	
+			
+				self::SetBdControle($bdRec->bdId, '*OK');
+			
+				// Maat verplicht?
+				if ($bdRec->bdMaat <= ' ') {
+				
+					if (self::ChkMaatVerplicht($bdRec->bdArtikel)) {
+						
+						self::SetBdControle($bdRec->bdId, '*MAAT');
+						
+						if ($SetHeaderCode == false) {
+							self::SetBhControle($bestelId, '*MAAT');
+							$SetHeaderCode = true;
+						}
+							
+						
+					}
+								
+				}
+							
+			}
+
+			// -------------------------
+			// Set Besteh-Header STATUS
+			// -------------------------
+			
+			self::SetBhStatus($bestelId);
+			
+		}
+	
+ 		// ===================================================================================================
+		// Functie: Set Bestel-detail Controle Code
+		//
+		// In:	- bdId = Bestel-detail ID
+		//  	- controleCode = Controle Error Code
+		//
+		// ===================================================================================================
+         
+        public function SetBdControle($bdId, $controleCode) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			
+			$query = "Update eba_bd_bestel_detail set bdControle = '$controleCode' where bdId = $bdId";
+			
+			$db->Query($query);
+			
+		}
+	
+ 		// ===================================================================================================
+		// Functie: Set Bestel-header Controle Code
+		//
+		// In:	- bhId = Bestel-header ID
+		//  	- controleCode = Controle Error Code
+		//
+		// ===================================================================================================
+         
+        public function SetBhControle($bhId, $controleCode) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			
+			$query = "Update eba_bh_bestel_headers set bhControle = '$controleCode' where bhId = $bhId";
+			
+			$db->Query($query);
+			
+		}
+		
+ 		// ===================================================================================================
+		// Functie: Set Bestel-header STATUS
+		//
+		// In:	- bhId = Bestel-header ID
+		//  	- controleCode = Controle Error Code
+		//
+		// ===================================================================================================
+         
+        public function SetBhStatus($bhId) {  
+ 
+			include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object  
+			
+			$query = "Select * from eba_bh_bestel_headers where bhId = $bhId";
+			
+			$db->Query($query);
+			
+			$bhRec = $db->Row();
+			
+			if ($bhRec->bhControle != '*OK') {
+			
+				$query = "Update eba_bh_bestel_headers set bhStatus = '*CONTROLE' where bhId = $bhId";
+				$db->Query($query);
+			
+			}
+			
+			if ($bhRec->bhControle == '*OK') {
+			
+				$query = "Update eba_bh_bestel_headers set bhStatus = '*BESTELLEN' where bhId = $bhId";
+				$db->Query($query);
+			
+			}
+			
+		}
+		
+    }
+       
+?>

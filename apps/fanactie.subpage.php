@@ -1,0 +1,214 @@
+<script>
+document.title = 'Schelle Sport - Fanactie';
+</script>
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(Sx::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+$db2 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(SX::GetClassPath("fanactie.class"));
+
+
+$jsPath = $_SESSION["SX_BASEDIR"] . '/jquery/overlib_mini.js';
+echo '<script type="text/javascript" src="' . $jsPath . '"> </script>';
+
+?>
+
+<!-- ------ -->
+<!-- JQUERY -->
+<!-- ------ -->
+
+<script>
+$(document).ready(function(){
+
+		$(".sold").mouseover(function(){
+		
+		
+			$id = $(this).attr('id');
+			$text = $(this).attr('data');
+			overlib($text,AUTOSTATUS,WIDTH,300, FGCOLOR,'#ffffc5');
+		
+		});
+
+		$(".sold").mouseout(function(){
+		
+			nd();
+		
+		});
+		
+		$(".sponsor").mouseover(function(){
+		
+			$m2 = $(this).attr('m2');
+			var array = $m2.split(",");
+
+			for (var i in array){
+			
+				$id = "#" + array[i];
+				
+				// alert($id2);
+				
+				$($id).css('border-color','red');
+				$($id).css('background-color','red');
+				
+			};
+
+			$text = $(this).attr('data');
+			// alert($text);
+			overlib($text,AUTOSTATUS,WIDTH,300, FGCOLOR,'#ffffc5');
+			
+		
+		});
+
+		$(".sponsor").mouseout(function(){
+		
+			nd();
+		
+			$m2 = $(this).attr('m2');
+			var array = $m2.split(",");
+
+			for (var i in array){
+			
+				$id = "#" + array[i];
+				
+				// alert($id2);
+				
+				$($id).css('border-color','yellow');
+				$($id).css('background-color','');
+			}
+			
+			
+
+		
+		});
+
+		
+		
+});
+
+</script>
+
+<?php
+	
+
+	$id = 0;
+	
+	$image = SX::GetSiteImgPath('veldfanactie.jpg');
+
+	echo "<div style='border: 5px solid green; padding-top: 7px; padding-left: 5px; width: 700px; height: 420px; background-image: url($image)'>";
+	
+		echo "<table cellspacing='0' style='width: 700px; height: 420px'>";
+	
+		for ($y = 1; $y <= 60; $y++) {
+			
+			echo "<tr>";
+			
+			For ($x = 1; $x <= 100; $x++) {
+			
+				$id++;
+				
+				$query = "Select * from ssp_fanactie_m2 where nummer = $id";
+				$class = "notsold";
+				$color = "green";
+				$naam = "xxx";
+				
+				
+				if (($db->Query($query)) && ($m2Rec = $db->Row())) {
+				
+					if ($m2Rec->fanId <> 0) {
+					
+						$color = "yellow";
+						$naam = "xxx";
+						
+						$sqlStat = "Select * from ssp_fanactie where id = $m2Rec->fanId";
+						if (($db2->Query($sqlStat)) && ($fanRec = $db2->Row())){
+							$naam = "$fanRec->voornaam $fanRec->naam";
+							$naam = htmlspecialchars($naam);
+							$class = "sold";
+						}
+								
+					}	
+								
+						
+				}
+				
+				echo "<td id=$id class=\"$class\" data=\"$naam\" style=\"width:5px; height: 5px; border: 1px solid $color; padding: 0px\"></td>";
+
+			}
+			
+			echo "</tr>";
+			
+		}
+		
+		echo "</table>";
+	
+	echo "</div>";
+	
+	echo "<br/>";
+	
+	echo "<h2>Reeds gesponsord door (ga met cursor over namen voor overzicht m2):</h2>";
+	echo "<br/>";
+	
+	$query = "Select * from ssp_fanactie order by naam";
+	
+	$pos = 1;
+	
+	if ($db->Query($query)) {
+		
+		while($fanRec = $db->Row()) {
+			
+			if ($fanRec->betaalstatus == 'Volledig') {
+			
+				$data = "<b>$fanRec->voornaam $fanRec->naam</b><br/>";
+				
+				if ($fanRec->m2_A > 0)
+					$data .= "$fanRec->m2_A m2 in zone A";
+				
+				if ($fanRec->m2_B > 0) {
+					$data .= "<br/>$fanRec->m2_B m2 in zone B";
+				}
+				
+				if ($fanRec->m2_C > 0) {
+					$data .= "<br/>$fanRec->m2_C m2 in zone C";
+				}			
+				
+				if ($fanRec->m2_D > 0) {
+					$data .= "<br/>$fanRec->m2_D m2 in zone D";
+				}
+				
+				$data = "<div style=\"border: 1px solid; padding: 5px\">$data</div>";
+			
+				$string = SSP_fanactie::GetFanM2String($fanRec->id);
+				
+				
+				echo "<div style=\"float: left; font-size: 125%;\" class=\"sponsor\" data=\"" . htmlspecialchars($data) . "\" m2=\"$string\" id=\"$fanRec->id\">";
+				
+				if ($pos > 1)
+					echo '&nbsp;-&nbsp;';
+				
+				echo "$fanRec->voornaam $fanRec->naam";
+				echo "</div>";
+
+				$pos++;
+			
+			}
+		
+		}
+		
+		echo "<br/><br/><br/><br/>";
+		
+		
+	}
+	
+	echo "<br style='clear: both'>";
+	$image2 = SX::GetSiteImgPath('Veldkeuze2.jpg');
+	echo "<image src='$image2'></image>";
+	
+	
+?>
+

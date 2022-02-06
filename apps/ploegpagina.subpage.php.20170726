@@ -1,0 +1,432 @@
+<style TYPE="text/css">
+
+	.newline{
+		height: 0px;
+		padding: 0px;
+		margin: 0px;
+		clear: both;
+	}
+
+	.hoofding{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		background-color: #E3EEF2;
+		margin: 0px:
+		height: 14px;
+	}
+
+	.detail1{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		margin-top: 0px:
+		margin-bottom: 0px;
+		height: 14px;
+		overflow: hidden;
+	}
+
+	.detail2{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		background-color: #FFFCCC;
+		margin-top: 0px:
+		margin-bottom: 0px;
+		height: 14px;
+		overflow: hidden;
+
+	}
+
+	.afgelast{
+		text-decoration: line-through;
+	}
+	
+  
+</style>
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(SX::GetClassPath("ploegen.class"));
+include_once(SX::GetClassPath("wedstrijden.class"));
+include_once(SX::GetClassPath("clubs.class"));
+include_once(SX::GetClassPath("personen.class"));
+include_once(SX::GetClassPath("settings.class"));
+
+
+// -----
+// inits
+// -----
+
+$today1 = strtotime('-6 hours');
+$today2 = strtotime('tomorrow');
+$eerstvolgend = FALSE;
+
+$logoFB = SX::GetSiteImg('facebook.gif');
+
+$nextWedstrijdId = SSP_ploegen::GetVolgendeWedstrijd($parm1, 4, TRUE);
+
+// --------------
+// Omvattende div
+// --------------
+
+echo '<div style="margin-left: 10px">';
+
+// --------------------
+// Afbeelden ploeg-info
+// --------------------
+
+$query = 'Select * from ssp_vp where vpId = ' . $parm1;
+
+if (!$db->Query($query)) { 
+  return $query;
+}
+
+
+if (! $vpRec = $db->Row()) {
+	echo '*** ONVERWACHTE FOUT ***';
+	return;
+}
+
+// ------------------
+// Set document title
+// ------------------
+
+$docTitle = "Schelle Sport - Ploegpagina $vpRec->vpNaam";
+echo ' <script> ';
+echo "$(document).attr('title', '$docTitle');";
+echo ' </script> ';
+
+echo '<h1>' . $vpRec->vpNaam .  '</h1>';
+
+// -------------------------------
+// Ophalen ploegfoto (klein/groot)
+// -------------------------------
+
+$fotoPath = '';
+$fotoGrootPath = '';
+
+$fotos = json_decode($vpRec->vpFoto);
+
+if ($fotos) {
+	foreach ($fotos as $foto) {
+
+	  if (strpos($foto->type, "image") !== false)
+		$fotoPath = $foto->name;
+
+	}
+}
+
+$fotosGroot = json_decode($vpRec->vpFotoGroot);
+
+if ($fotosGroot) {
+	foreach ($fotosGroot as $fotoGroot) {
+
+	  if (strpos($fotoGroot->type, "image") !== false)
+		$fotoGrootPath = $fotoGroot->name;
+
+	}
+}
+
+// -----------------------
+// Versie ZONDER ploegfoto
+// -----------------------
+
+if (! $fotoPath) {
+
+	echo '<div style="float: left">';	
+					
+		echo 'Trainer(s): ' .  SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpTrainer));
+		   
+		if ($vpRec->vpTrainer2)
+			echo  '<span style="padding-left:10px">' 
+				. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer2), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpTrainer2))
+				. '</span>';
+
+		if ($vpRec->vpTrainer3)
+			echo  '<span style="padding-left:10px">' 
+				. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer3), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpTrainer3))
+				. '</span>';
+
+		if ($vpRec->vpTrainer4)
+			echo  '<span style="padding-left:10px">' 
+				. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer4), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpTrainer4))
+				. '</span>';
+
+		if ($vpRec->vpTrainer5)
+			echo  '<span style="padding-left:10px">' 
+				. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer5), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpTrainer5))
+				. '</span>';
+				
+		echo '&nbsp;&nbsp;Afgevaardigde(n): ' .  SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpDelege), ' ' ,
+							SSP_personen::GetNaam($vpRec->vpDelege));
+		 
+
+		if ($vpRec->vpDelege2)
+			echo  '<span style="padding-left:10px">' 
+				. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpDelege2), ' ' ,
+				SSP_personen::GetNaam($vpRec->vpDelege2))
+				. '</span>';
+					
+		if ($vpRec->vpInfo > ' '){
+			echo '<br/><br/>';
+			echo nl2br($vpRec->vpInfo);
+		}
+
+		if ($vpRec->vpLinkStand > ' ') {
+
+			echo '<br/><br/>';
+
+			echo 'Klik <a href="' . $vpRec->vpLinkStand . '" target="_blank">hier</a> voor de stand in hun reeks ' . $vpRec->vpReeks ;
+	}
+
+	echo '</div>';
+
+	echo '<div style="float: left; margin-left: 10px;">';
+		echo '&nbsp;';
+		if ($vpRec->vpLinkFB > " ") {
+			echo '<a href="' . $vpRec->vpLinkFB . '" target="_blank">' . $logoFB. '</a>';
+		}
+
+	echo '</div>';
+
+	echo '<br style="clear: both">';
+	
+}
+		
+// --------------------
+// Versie MET ploegfoto
+// --------------------
+
+if ($fotoPath) {
+
+	echo '<div style="float:left; padding-right: 10px">';
+		echo '<a href="' . $fotoGrootPath . '"  target="_blank"><img src="' . $fotoPath. '"></a>';
+	echo '</div>';
+
+	echo '<div style="float: left; padding-top: 10px">';
+
+		echo '<div style = "; width: 300px; padding-bottom: 5px">';
+		
+			echo '<div style="float: left; width: 70px">Trainer(s):</div>';
+					
+			echo SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpTrainer));
+	    	   
+			if ($vpRec->vpTrainer2)
+				echo  '<span style="padding-left:10px">' 
+					. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer2), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpTrainer2))
+					. '</span>';
+  	   
+			if ($vpRec->vpTrainer3) {
+				echo '<br/>';
+				echo '<div style="float: left; width: 60px">&nbsp;</div>';
+				echo  '<span style="padding-left:10px">' 
+					. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer3), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpTrainer3))
+					. '</span>';
+			}
+   	   
+			if ($vpRec->vpTrainer4) {
+				echo  '<span style="padding-left:10px">' 
+					. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer4), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpTrainer4))
+					. '</span>';
+			}
+   	   
+			if ($vpRec->vpTrainer5) {
+				echo '<br/>';
+				echo '<div style="float: left; width: 60px">&nbsp;</div>';
+				echo  '<span style="padding-left:10px">' 
+					. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpTrainer5), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpTrainer5))
+					. '</span>';
+			}
+					
+    		echo '<br/><br/>';
+	
+			echo 'Afgevaardigde(n): ' .  SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpDelege), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpDelege));
+ 
+  
+			if ($vpRec->vpDelege2)
+				echo  '<span style="padding-left:10px">' 
+					. SX_tools::CrtTooltip(SSP_personen::GetContactInfo($vpRec->vpDelege2), ' ' ,
+					SSP_personen::GetNaam($vpRec->vpDelege2))
+					. '</span>';
+			
+			if ($vpRec->vpInfo > ' '){
+				echo '<br/><br/>';
+				echo nl2br($vpRec->vpInfo);
+			}
+
+			if ($vpRec->vpLinkStand > ' ') {
+
+				echo '<br/><br/>';
+	
+				echo 'Klik <a href="' . $vpRec->vpLinkStand . '" target="_blank">hier</a> voor de stand in hun reeks ' . $vpRec->vpReeks ;
+	
+			}
+			
+			
+			if ($vpRec->vpLinkFB > " ") {
+				echo '<br/><br/>';
+				echo '<a href="' . $vpRec->vpLinkFB . '" target="_blank">' . $logoFB. '</a>';
+			}
+	
+		echo '</div>';
+
+	echo '</div>';
+
+	echo '<br style="clear: both">';
+
+
+}
+
+// ---------------------
+// Overzicht wedstrijden
+// ---------------------
+
+
+// =======
+// headers
+// =======
+
+echo '<br style="clear: both">';
+
+echo '<div class="hoofding" style="width: 100px; float: left; font-weight: bold; ">Datum</div>';
+echo '<div class="hoofding" style="width: 50px; float: left; font-weight: bold; ">Aanvang</div>';
+echo '<div class="hoofding" style="width: 160px; float: left; font-weight: bold; ">Tegenstander</div>';
+echo '<div class="hoofding" style="width: 100px; float: left; font-weight: bold; ">Type</div>';
+echo '<div class="hoofding" style="width: 50px; float: left; font-weight: bold; ">U/T</div>';
+echo '<div class="hoofding" style="width: 100px; float: left; font-weight: bold; ">Uitslag</div>';
+echo '<div class="hoofding" style="width: 30px; float: left; font-weight: bold; ">Info</div>';
+echo '<div class="hoofding" style="width: 50px; float: left; font-weight: bold; ">Verslag</div>';
+
+echo '<br style="clear: both">';
+
+$query = 'Select * from ssp_vw '  
+       . 'where vwPloeg = ' . $parm1 . ' '
+       . 'order by vwDatumTijd';
+	   
+if (!$db->Query($query)) { 
+  return $query;
+}
+
+while ($vwRec = $db->Row()) {	 
+
+
+	$datumTijd = strtotime( $vwRec->vwDatumTijd ); 
+        
+	$datumE = SX_tools::EdtDate($vwRec->vwDatumTijd, '%a %d %b %Y');
+	$tijdE = SX_tools::EdtDate($vwRec->vwDatumTijd, '%H:%M');
+	
+	$wedstrijdType = SSP_wedstrijden::GetWedstrijdTypeOmschrijving($vwRec->vwType, 'K', $vwRec->vwHeenTerug);
+	$status = SSP_wedstrijden::GetWedstrijdStatusOmschrijving($vwRec->vwStatus, $Afgelast);
+	
+	if ($vwRec->vwUitThuis == 'U') 
+		$uitThuis = 'Uit';
+	else
+		$uitThuis = 'Thuis';
+
+	$tegenstander = $vwRec->vwTegenstander;
+;
+	if ($vwRec->vwClub > 0) {
+		
+		$tegenstander2 = SSP_clubs::GetSiteLink($vwRec->vwClub, $tegenstander);
+	
+		if ($tegenstander2 > ' ')
+			$tegenstander = $tegenstander2;
+	
+	}
+
+	if ($datumTijd >= $today1 and $datumTijd <= $today2 ) {
+		$extraStyle = 'color: red';
+	}
+	else if ($datumTijd < $today2) {
+		$extraStyle = 'color: blue';
+	} 
+	else {
+		$extraStyle = ' ';
+	}
+
+	if ($vwRec->vwStatus == 'TS') {
+		$uitslag = '&nbsp;';
+	}
+	else {
+		$uitslag = $status;
+	}
+	
+
+	if ($vwRec->vwStatus == 'GS' and $vwRec->vwUitThuis == 'T') {  
+        $uitslag = '<b>'.$vwRec->vwDoelpVoor.'</b>'
+				 . '&nbsp;-&nbsp;'
+				 . $vwRec->vwDoelpTegen;  
+    } elseif ($vwRec->vwStatus == 'GS' and $vwRec->vwUitThuis == 'U') {  
+        $uitslag = $vwRec->vwDoelpTegen
+				 . '&nbsp;-&nbsp;'
+				. '<b>'. $vwRec->vwDoelpVoor . '</b>';  
+    } 
+	
+	$info = SSP_wedstrijden::GetWedstrijdExtraInfoTooltip($vwRec->vwId);
+
+	$verslag = '&nbsp;';	
+	$verslagIcon = '&nbsp;';
+
+	$linkType = 'VOETBALVERSLAG';
+	if ($vpRec->vpJeugdSeniors == 'Seniors')
+		$linkType = 'VOETBALVERSLAG_SENIORS';
+
+	if ($vwRec->vwIsVerslag == 1 && $vwRec->vwVerslagStatus == 'OK'){
+		$verslag =  SSP_settings::GetLink($linkType , 'Verslag', '', $vwRec->vwId );
+	}   
+	
+	$class = 'detail1';
+	if ($vwRec->vwId == $nextWedstrijdId)
+		$class = 'detail2';
+	
+	$class2 = $class;
+	if ($Afgelast == 1)
+		$class2 = $class . ' afgelast';
+	
+	echo '<div class="' . $class2 . '" style="width: 100px; float: left">'. $datumE . '</div>';
+	echo '<div class="' . $class2 . '" style="width: 50px; float: left">'. $tijdE . '</div>';
+	echo '<div class="' . $class2 . '" style="width: 160px; float: left">'. $tegenstander . '</div>';
+	echo '<div class="' . $class2 . '" style="width: 100px; float: left">'. $wedstrijdType . '</div>';
+	echo '<div class="' . $class2 . '" style="width: 50px; float: left">'. $uitThuis . '</div>';
+	echo '<div class="' . $class . '" style="width: 100px; float: left">' . $uitslag . '</div>';
+	echo '<div class="' . $class . '" style="width: 30px; float: left">' . $info . '</div>';
+	echo '<div class="' . $class . '" style="width: 50px; float: left">' . $verslag . '</div>';
+
+	echo '<br style="clear: both">';
+	
+}  
+
+// --------------------
+// Einde omvattende div
+// --------------------
+
+echo '<br style="clear: both">';
+echo '</div>';
+  
+
+?>

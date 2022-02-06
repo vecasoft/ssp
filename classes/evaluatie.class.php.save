@@ -1,0 +1,139 @@
+<?php 
+
+class SSP_evaluatie { // define the class
+
+	// ========================================================================================
+	// Function: Get geëvalueerde naam	
+	//
+	// In:	- code (bv. gverhelst) 
+	//
+	// Return: Voornaam + naam
+	// ========================================================================================
+	
+	public function GetNaam($code) {   // ophalen naam (voornaam + naam)
+
+		include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...  	
+
+		if ($code <= " ")
+			return '&nbsp;';
+		  
+		$query = 'Select * from ssp_ad where adCode = "' . $code . '"';
+		
+		if (!$db->Query($query)) 
+			return $query;
+
+		if (! $adRec = $db->Row())
+			return $query;
+			
+					 
+		return $adRec->adVoornaam . '&nbsp;' . $adRec->adNaam;
+	
+	}    
+	
+	// ========================================================================================
+	// Function: Get Tel + Mail	
+	//
+	// In:	- code (bv. gverhelst) 
+	//
+	// Return: Tel & Mail
+	// ========================================================================================
+				
+	public function GetContactInfo($code) {   // ophalen tel & mail
+
+		include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...  	
+
+		if ($code <= " ")
+			return '&nbsp;';
+		  
+		$query = 'Select * from ssp_ad where adCode = "' . $code . '"';
+		
+		if (!$db->Query($query)) 
+			return $query;
+
+		if (! $adRec = $db->Row())
+			return $query;
+				 
+		$mail = '&nbsp;';
+		
+		if ($adRec->adMail)
+			$mail = '<a href="mailto:' . $adRec->adMail . '">' . $adRec->adMail . '</a>';
+		
+		
+		return 	'<b>' . $adRec->adVoornaam . '&nbsp;' . $adRec->adNaam . '</b><br/><br/>'
+		  		. 'Tel.: ' . $adRec->adTel . '<br/>'
+				. 'Mail: ' . $mail;
+	
+	}
+		
+	// ========================================================================================
+	// Function: Get Tel	
+	//
+	// In:	- code (bv. gverhelst) 
+	//
+	// Return: Tel
+	// ========================================================================================
+	   
+	public function GetTel($code) {   // ophalen tel
+		
+		include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...  	
+
+		if ($code <= " ")
+			return '&nbsp;';
+		  
+		$query = 'Select * from ssp_ad where adCode = "' . $code . '"';
+		
+		if (!$db->Query($query)) 
+			return $query;
+
+		if (! $adRec = $db->Row())
+			return $query;
+
+		if ($adRec->adTel > ' ') {
+			return  $adRec->adTel;
+		}
+		else {
+			return '&nbsp;';
+		}
+
+	} 
+	
+	// ========================================================================================
+	// Function: Get Mail link	
+	//
+	// In:	- code (bv. gverhelst) 
+	//		- mailOrName = Afbeelden mailadres of naam
+	//
+	// Return: Mail
+	// ========================================================================================
+	   
+	public function GetMail($code, $mailOrName = '*MAIL') {   // ophalen Mail
+		
+		include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...  	
+
+		if ($code <= " ")
+			return '&nbsp;';
+		  
+		$query = 'Select * from ssp_ad where adCode = "' . $code . '"';
+		
+		if (!$db->Query($query)) 
+			return $query;
+
+		if (! $adRec = $db->Row())
+			return $query;
+			
+		$mail = '&nbsp;';
+		
+		if ($adRec->adMail && $mailOrName == '*MAIL')
+			$mail = '<a href="mailto:' . $adRec->adMail . '">' . $adRec->adMail . '</a>';	
+		if ($adRec->adMail && $mailOrName != '*MAIL')
+			$mail = '<a href="mailto:' . $adRec->adMail . '">' . $adRec->adVoornaam . '&nbsp;' . $adRec->adNaam . '</a>';	
+		
+		return $mail;
+		
+	}    
+
+
+	
+}
+   
+?>

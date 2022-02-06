@@ -1,0 +1,155 @@
+<style TYPE="text/css">
+
+	.hoofding{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		background-color: #E3EEF2;
+		font-weight: bold;
+		margin: 0px:
+
+	}
+
+	.detail1{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		margin-top: 0px:
+		margin-bottom: 0px;
+		overflow: hidden;
+	}
+
+	.detail2{
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		border: 1px solid #E5E5E5;
+		background-color: #E3EEF2;
+		margin-top: 0px:
+		margin-bottom: 0px;
+		overflow: hidden;
+	}
+
+</style>
+
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(Sx::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(Sx::GetClassPath("ploegen.class"));
+include_once(Sx::GetClassPath("wedstrijden.class"));
+include_once(Sx::GetClassPath("clubs.class"));
+
+// -----
+// inits
+// -----
+
+$today1 = strtotime('-6 hours');
+$today2 = strtotime('tomorrow');
+
+$actiefSeizoen = SSP_ploegen::GetSeizoen();
+
+
+// ---------------------------------
+// Get "ploegen van opgegeven groep"
+// ---------------------------------
+
+$query 	= 'Select * from ssp_vp '     
+		. ' where vpJeugdSeniors = "'. $JeugdSeniors . '" and vpSeizoen = "' . $actiefSeizoen . '" '
+		. 'order by vpSort desc, vpLetter desc';
+		   
+		   
+if (!$db->Query($query)) { 
+  return $query;
+}
+
+
+// -------
+// Headers
+// -------
+
+echo '<div class="hoofding" style="width: 160px; float: left">Ploeg</div>';
+echo '<div class="hoofding" style="width: 550px; float: left">Eerstvolgende wedstrijd</div>';
+echo '<br style="clear: both">';
+
+while ($vpRec = $db->Row()) { 
+
+	// ----------
+	// Reeks KBVB
+	// ----------
+	
+	$reeks = '&nbsp;';
+	if ($vpRec->vpReeks > ' ')
+		$reeks = '(' . $vpRec->vpReeks . ')';
+		
+	// ---------
+	// Kleur-box
+	// ---------
+	
+	$colorBox = '&nbsp;';
+
+	if ($vpRec->vpKleur > ' ') 
+		$colorBox = SSP_ploegen::GetKleurCodeBox($vpRec->vpId);
+		
+	// -----------------------------------	
+	// Ploegnaam (+ link naar ploegpagina)
+	// -----------------------------------
+
+	$ploegNaam = "<div style='width: 55px; float: left'>" . SSP_ploegen::GetPloegPaginaLink($vpRec->vpId) . "</div><div style='width: 20px; float: left'>$colorBox</div><div style='float: left'>$reeks</div>";
+	
+	// ------------------
+	// Volgende wedstrijd
+	// ------------------
+	
+	$wedstrijdId = SSP_ploegen::GetVolgendeWedstrijd($vpRec->vpId, 4);
+	$wedstrijdId2 = SSP_ploegen::GetVolgendeWedstrijd($vpRec->vpId, 4, TRUE);
+		
+	$volgendeWedstrijd = ' ';
+	$volgendeWedstrijd2 = ' ';
+			
+	if ($wedstrijdId > 0) {
+		$volgendeWedstrijd = SSP_wedstrijden::GetWedstrijdInfoString($wedstrijdId,2);	
+		$volgendeWedstrijd 	= "<div style='float:left; margin-right: 5px'>$volgendeWedstrijd</div>"  
+						. SSP_wedstrijden::GetWedstrijdExtraInfoTooltip($wedstrijdId);
+	}
+	
+	if ($wedstrijdId2 > 0 and $wedstrijdId != $wedstrijdId2) {
+		$volgendeWedstrijd2 = SSP_wedstrijden::GetWedstrijdInfoString($wedstrijdId2,2);	
+		$volgendeWedstrijd2 = "<div style='float:left; margin-right: 5px'>$volgendeWedstrijd2</div>"  
+						. SSP_wedstrijden::GetWedstrijdExtraInfoTooltip($wedstrijdId2);
+		$volgendeWedstrijd2 = "<br style='clear:both'>$volgendeWedstrijd2";		
+	}
+	
+	// ----------------
+	// Afbeelden record
+	// ----------------	
+	
+	$class = 'detail1';
+	
+	echo '<div class="'. $class . '" style="width: 160px; float: left">' . $ploegNaam . '</div>';
+	echo '<div class="'. $class . '" style="width: 550px; float: left">' . $volgendeWedstrijd . $volgendeWedstrijd2 . '</div>';
+	
+	echo '<br style="clear: both">';
+	
+	
+	
+	
+	
+	
+		
+
+}
+	
+
+?>

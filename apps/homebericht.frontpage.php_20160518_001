@@ -1,0 +1,191 @@
+<?php
+
+// -------
+// Classes
+// -------
+
+include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object     
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(SX::GetSxClassPath("content.class"));
+
+// -----------------
+// Get "homebericht"
+// -----------------
+
+$query = "Select * from ssp_hb where hbActief = 1 and hbId = $parm1";
+	
+if (($db->Query($query)) && ($hbRec = $db->Row() )){ 
+
+	// ---------------
+	// Vervolgartikel?
+	// ---------------
+
+	$vervolgArtikel = '*NONE';
+	
+	if ($hbRec->hbArtikelId > 0) 
+		$vervolgArtikel = SX_content::getArticleLink($hbRec->hbArtikelId, $hbRec->hbTekstLink);
+
+	// --------------
+	// omvattende div
+	// --------------
+	
+	echo '<div style="float: left; width: 99%; padding-left: 0px; padding-bottom: 1px; margin-bottom: 5px">';
+	
+		
+		// -----
+		// titel
+		// -----
+		
+		echo '<div class="frontpage_header">';
+			echo '<h2 style="color: white; margin: 0px; padding-bottom: 3px; padding-top: 3px; padding-left: 3px">' . $hbRec->hbTitelBoven . '</h2>';
+		echo '</div>';
+		
+		echo '<div class="frontpage_border">';
+			
+		// ----------
+		// Foto-album
+		// ----------
+	
+		if ($hbRec->hbFotoAlbum <> 0 ){
+			
+?>
+
+
+<?php			
+		
+			
+			$sqlStat = "Select * from sx_ff_foto_album_fotos where ffAlbum = $hbRec->hbFotoAlbum";
+			$db->Query($sqlStat);
+			
+			echo "<div style=\"height:300px\">";
+			echo "<ul class=\"pgwSlideshow\">";
+			
+			while ($ffRec = $db->Row()) {
+				
+				$fotos = json_decode($ffRec->ffFoto);
+				if ($fotos) {
+					foreach ($fotos as $foto) {
+						$fotoPath = SX_tools::GetFilePath($foto->name);
+					}
+				}
+				
+				$caption = $ffRec->ffCaption;
+				
+				echo "<li><a  href=\"$fotoPath\" target=\"_blank\"><img src=\"$fotoPath\" alt=\"$caption\" data-large-src=\"$fotoPath\" data-description=\"Golden Gate Bridge\"></a></li>";
+				
+			}
+			
+			echo "</ul>";
+			echo "<br style=\"clear: both;\">";
+			echo "</div>";
+			
+?>
+
+<script>
+
+    $('.pgwSlideshow').pgwSlideshow({
+      displayList: false
+    });
+
+</script>
+
+<?php		
+			
+			
+		}
+		
+		else {	
+		
+			// ----
+			// Foto
+			// ----
+				
+			$fotoPath = '*NONE';
+			$fotoGrootPath = '*NONE';
+			
+			$fotos = json_decode($hbRec->hbFoto);
+			if ($fotos) {
+				foreach ($fotos as $foto) {
+					$fotoPath = SX_tools::GetFilePath($foto->name);
+				}
+			}
+				
+			$fotosGroot = json_decode($hbRec->hbFotoGroot);
+			if ($fotosGroot) {
+				foreach ($fotosGroot as $fotoGroot) {
+					$fotoGrootPath = SX_tools::GetFilePath($fotoGroot->name);
+				}
+			}
+			
+			echo '<div style="float: left; padding: 0px; margin-top: 5px; margin-left: 3px; margin-right: 10px; margin-bottom: 0px; width: 150px">';
+			
+				if ($fotoPath != '*NONE' && $fotoGrootPath == '*NONE') {
+					echo '<img style="width: 150px; margin-left: 0px; margin-top: 0px; padding-top: 0px display: block; " src="' . $fotoPath. '">';
+				}
+				
+				if ($fotoPath != '*NONE' && $fotoGrootPath != '*NONE') {
+					echo '<a href="' . $fotoGrootPath . '"  target="_blank"  title="Klik om volledige foto te zien">';
+					echo '<img style="width: 150px; margin-left: 0px; margin-top: 0px; padding-top: 0px display: block; " src="' . $fotoPath. '">';
+					echo '</a>';
+				}
+				
+			
+			echo '</div>'; // Foto-div
+			
+			// ------------------
+			// Rechts van de foto
+			// ------------------
+			
+			$titel = '';
+
+			if ($hbRec->hbToonTitel == 1) 
+				$titel = $hbRec->hbTitel;
+
+			if ((!empty($hbRec->hbTekstRechts)) || ($hbRec->hbToonTitel == 1)) {
+				
+				echo '<div style="float: left; padding-top: 5px; width: 230px; margin-bottom: 0px">';
+		
+				if ($hbRec->hbToonTitel == 1) 
+					echo '<h2 style="padding: 0px; margin-top: 0px; margin-bottom: 5px">' . $hbRec->hbTitel . '</h2>';
+				
+				echo $hbRec->hbTekstRechts;
+				
+				if (empty($hbRec->hbTekstOnder) && $vervolgArtikel != '*NONE') {
+					echo '<div style="padding-top: 5px">'  . $vervolgArtikel . '</div>';
+					$vervolgArtikel = '';
+				}
+							
+				echo '</div>';
+			
+			}		
+			
+			// -----------------
+			// onder van de foto
+			// -----------------
+		
+			if (!empty($hbRec->hbTekstOnder)) {
+
+				echo'<div style="clear:both; padding-top: 5px; padding-left: 5px">';
+				echo $hbRec->hbTekstOnder;
+
+				if ($vervolgArtikel != '*NONE') {
+					echo '<div style="padding-top: 5px">'  . $vervolgArtikel . '</div>';
+					$vervolgArtikel = '';
+				}
+				
+				echo '</div>';
+
+			}
+		
+		
+			echo '<div style="clear: both; height:5px">&nbsp;</div>';	
+		
+		}
+		
+		echo '</div>';
+
+	echo '</div>'; // omvattende div
+		
+}
+
+?>

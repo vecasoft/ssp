@@ -1,0 +1,64 @@
+<?php
+
+// =======		
+// Classes
+// =======    
+    
+include(SX::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+include_once(SX::GetSxClassPath("date.class"));	// Creates a $db object	
+
+include_once(SX::GetClassPath("ploeg.class"));
+include_once(SX::GetClassPath("club.class"));
+
+$SSP_ploeg = new SSP_ploeg;
+$SSP_club = new SSP_club;
+$Date = new Date();
+
+// ----------
+// Page-title
+// ----------
+
+echo "<script> document.title = 'Schelle Sport - Mijn Toepassingen' </script>";
+
+// ======
+// Header
+// ======
+
+echo '<div style="padding-left: 10px; min-height: 300px">';
+
+	echo '<h1>Mijn toepassingen</h1>';
+	echo 'Klik op de gewenste toepassing';
+	echo '<br style="clear: both">';
+	echo '<br style="clear: both">';
+	
+	echo '<div style="float: left; width: 100px;">';
+		echo SX::GetImgMyApps();
+		echo '&nbsp;';
+	echo '</div>';
+
+	echo '<div style="float: left;">';
+		$apps = SX_apps::GetAllApps();
+		foreach ($apps as $app) {
+
+			echo SX::GetDotBlue();
+			echo '&nbsp;';
+			echo $app[0];
+			
+		}
+
+		
+	echo '</div>';	
+	
+
+echo '</div>';
+
+// ----------------
+// Google analytics
+// ----------------
+
+SX_content::evalCode('ANALYTICS');
+
+
+ 
+                      
+?>

@@ -1,0 +1,1222 @@
+<!DOCTYPE HTML>
+<html>
+
+<meta charset="ISO-8859-1">
+
+
+<script>
+document.title = 'Schelle Sport - Webshop';
+$("meta[name='og:description']").attr('content', 'Schelle Sport - Webshop');
+</script>
+
+
+<script>
+
+
+// ---------------
+// JQUERY-function
+// ---------------
+
+$(document).ready(function(){
+	
+	$( "#tabs" ).tabs();
+	$( "#tabs" ).tabs( "option", "active", 0 );
+   
+	// -----------------------
+	// Afbeelden "loading.gif"
+	// -----------------------
+	
+	$(document).ajaxStart(function(){
+				
+		$(".butToevoegen").prop("disabled",true);
+        $("#wachten").css("display", "block");
+		
+    });
+	
+    $(document).ajaxSuccess(function(){
+		
+		$(".butToevoegen").prop("disabled",false);	
+        $("#wachten").css("display", "none");
+   
+	});
+		
+	// - - - - - - - - - - - - 
+	// Display "vergrootglas"
+	// - - - - - - - - - - - -
+	
+	$('.fotoKlein').mouseenter(function() { 	
+		
+		$(this).children().css("display","block");
+	
+	})
+	
+	$('.fotoKlein').mouseout(function() { 	
+		
+		$(this).children().css("display","none");
+	
+	})
+	
+	// - - - - - - - - -
+	// Display foto-groot
+	// - - - - - - - - -
+	
+
+	$('.fotoKlein').click(function() { 	
+		
+		$path = $(this).attr('data-path');
+		$title = $(this).attr('data-title');
+		
+		$infoBoxFoto = $("#toonAfbeelding").dialog({
+		  resizable: true,
+		  modal: true,
+		  minWidth: 650,
+		  title: $title,
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+
+		});	
+	
+
+		$('div.dataTables_filter input').blur(); 
+
+		
+		$html = '<a onclick="jsCloseFotoPopup();"><img style="width: 600px; height: 600px" src="' + $path + '"></a>';
+		
+		$("#toonAfbeelding").html($html);
+
+		$infoBoxFoto.dialog('open');
+	
+	
+	})
+	
+	$('#toonAfbeelding').mouseout(function() { 	
+		// jsCloseFotoPopup();
+		
+	})
+
+	// - - - - - - - - - -
+	// Bewaar kledij-keuze
+	// - - - - - - - - - -
+	
+	$('#butKledijKeuze').click(function() { 
+	
+		$kledijKeuze = $("input[name=inpKledijKeuze]:checked").val();
+		 
+		if ($kledijKeuze != '*BEPERKT' && $kledijKeuze != '*VOLLEDIG') {
+			
+			alert("Je dient een keuze te maken");
+		}
+		else {
+					
+			$('#butKledijKeuze').prop('disabled', true);
+			$("#wachten").css("display", "block");
+		
+			$.ajax({
+				url: "webshop.ajax06.php?",
+				type: "POST",
+				timeout: 30000,
+				async: true,
+				cache: true,
+				data: {'kledijKeuze': $kledijKeuze},
+				success:function(result){
+				 
+					// $(this).css("background-color",""); 
+					// alert(result);				  
+					json = $.parseJSON(result);
+					
+					// alert(result);
+				
+					$return = json.kledijKeuze;
+					
+					alert("Uw kleuze werd geregistreerd, u wordt doorverwezen naar de webshop");
+					window.location.reload(true);
+					
+					
+
+				},           
+			
+				error:function(result){
+					alert('Fout 06 - Probeer later opnieuw');
+				}           
+				 
+			});
+	
+		
+		}
+	
+	})
+	
+	
+	// - - - - - - - - -
+	// Display Maat-info
+	// - - - - - - - - -
+
+	$infoBoxMaten = $( "#toonMaten" ).dialog({
+		  resizable: true,
+		  modal: false,
+		  minWidth: 300,
+		  title: 'Beschikbare maten',
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); }
+
+		});
+	
+	
+	$('.maatInfo').mouseover(function() { 	
+	
+		$('div.dataTables_filter input').blur(); 
+	
+		$maatInfo = $(this).attr('info');
+
+		$("#toonMaten").html($maatInfo);
+
+		
+		$infoBoxMaten.dialog('open');
+	
+	
+	})
+	
+	$('.maatInfo').mouseout(function() { 	
+	
+		$infoBoxMaten.dialog('close');
+
+	
+	
+	})	
+	
+	
+	// - - - - - - - - - -
+	// Button "toevoegen"
+	// - - - - - - - - - -
+	
+	$('.butToevoegen').click(function() { 
+					
+		$parm_id = $(this).attr('id');
+		$parm_type = $(this).attr('data-type');
+		 
+		// - - - - - - - - - - - - 	
+		// Retrieve HTML dialog-box
+		// - - - - - - - - - - - - 
+		
+		$.ajax({
+			url: "webshop.ajax02.php?",
+			type: "POST",
+			timeout: 30000,
+			async: true,
+			cache: true,
+			data: {'parm_id': $parm_id, 'parm_type': $parm_type},
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+				
+				// alert(result);
+			
+				$html = json.htmlcode;
+				$runStatus = json.runStatus;
+				$('#toevoegen').html($html);
+				$('#toevoegen').attr('runStatus', $runStatus);
+			
+				jsPopupToevoegen();
+ 					  
+			},           
+        
+			error:function(result){
+				alert('Fout 02 - Probeer later opnieuw');
+			}           
+             
+		});
+		
+
+		  
+
+	});
+	
+	
+	// - - - - - - - - - -
+	// Button "winkelwagen"
+	// - - - - - - - - - -
+	
+	$('#butWinkelwagen').click(function() { 
+
+		$url = $('#popupToevoegen').attr('url');
+		$url = $url + "?arId=0";
+		
+		$('#popupToevoegen').attr('href', $url);
+		
+		$('#popupToevoegen').click();
+	
+	
+	});	
+	
+	// - - - - - - - - - - - - - - - - 
+	// Button "Wissen winkelwagen-lijn"
+	// - - - - - - - - - - - - - - - - 
+	
+	$('#butDelWwData').click(function() { 
+
+		$wisId = $(this).attr('data');
+		
+		$.ajax({
+			url: "webshop.ajax04.php?",
+			type: "POST",
+			timeout: 30000,
+			cache: false,
+			async: true,
+			data: {'wwId': $wisId},
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+
+				$("#butGetWwData").click();
+				
+			},           
+        
+			error:function(result){
+
+				alert('Fout 04 - Probeer later opnieuw');
+			}           
+        
+             
+		});		
+		
+	});		
+
+	// - - - - - - - - - - - - -  
+	// Button "Plaats bestelling"
+	// - - - - - - - - - - - - - 
+	
+	
+	$bevestigBestelling = $( "#bevestigBestelling" ).dialog({
+		  resizable: true,
+		  modal: true,
+		  minWidth: 600,
+		  title: 'Uw bestelling werd geplaatst',
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+		  buttons: {
+			OK: function() {
+			  $( this ).dialog( "close" );
+			}
+		  }
+
+		});
+	
+	
+	
+	
+	$('#butPlaatsBestelling').click(function() { 
+
+		$.ajax({
+			url: "webshop.ajax05.php?",
+			type: "POST",
+			timeout: 20000,
+			cache: false,
+			async: true,
+			success:function(result){
+			
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+			
+				$info = json.info;
+
+				
+				$("#bevestigBestelling").html($info);
+				
+								
+				$("#butGetWwData").click();
+				
+				$bevestigBestelling.dialog('open');
+				
+				
+			},           
+        
+			error:function(result){
+				alert('Fout 05 - Probeer later opnieuw');
+			}           
+        
+             
+		});		
+		
+	});
+
+	// - - - - - - - - - - - - -
+	// Button "Plaats bestelling"
+	// - - - - - - - - - - - - -
+
+
+	$bevestigBestelling = $( "#bevestigBestelling" ).dialog({
+		  resizable: true,
+		  modal: true,
+		  minWidth: 600,
+		  title: 'Uw bestelling werd geplaatst',
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+		  buttons: {
+			OK: function() {
+			  $( this ).dialog( "close" );
+			}
+		  }
+
+		});
+
+
+
+
+	$('#butPlaatsBestelling').click(function() {
+
+		$.ajax({
+			url: "webshop.ajax05.php?",
+			type: "POST",
+			timeout: 20000,
+			cache: false,
+			async: true,
+			success:function(result){
+
+				// $(this).css("background-color","");
+				// alert(result);
+				json = $.parseJSON(result);
+
+				$info = json.info;
+
+
+				$("#bevestigBestelling").html($info);
+
+
+				$("#butGetWwData").click();
+
+				$bevestigBestelling.dialog('open');
+
+
+			},
+
+			error:function(result){
+				alert('Fout 05 - Probeer later opnieuw');
+			}
+
+
+		});
+
+	});
+
+	
+	// -----------------------------------------------------------	
+	// AJAX - Ophalen aantal lijnen in winkelwagen & totaal bedrag
+	// -----------------------------------------------------------	
+	
+    $("#butGetWwData").click(function(){
+
+		// $(this).css("background-color","#ffffff");
+		
+		// alert('get_data');
+		
+		$.ajax({
+			url: "webshop.ajax01.php?",
+			type: "POST",
+			timeout: 30000,
+			cache: true,
+			async: true,
+			data: {'actie': 'follow'},
+			success:function(result){
+				
+				// alert('ajax01 success');
+
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+
+				$('#wwNaam').html(unescape(json.voornaamNaam));
+				$('#wwMail').html(unescape(json.mail));
+				$('#wwTel').html(json.tel);
+				$('#wwLidgeldStatus').html(json.lidgeldStatus);
+				$('#kledijKeuzeTekst').html(json.kledijKeuzeTekst);
+				$('#wwAantal').html(json.aantal);
+				$('#wwBedrag').html(json.bedrag);			
+ 				$('#winkelwagen').html(json.winkelwagen);
+ 				$('#kledijBon').html(json.kledijBon);
+ 				$('#kledijbonBesteed').html(json.kledijbonBesteed);
+ 				$('#kledijBonRest').html(json.kledijBonRest);	
+				
+				if (json.kledijBonRest != '0')
+					$('#kledijBonRest2').html(' - wordt verrekend op uw eerstvolgende bestelling');
+				else
+					$('#kledijBonRest2').html('');
+				
+				
+				if (json.aantal > 0)
+					$('#butPlaatsBestelling').removeAttr("disabled");
+				else
+					$('#butPlaatsBestelling').attr("disabled", "disabled");
+				
+				if (json.kledijBon != "0")
+					$("#kledijBonDiv").show();
+				if (json.kledijKeuzeTekst > " ")
+					$("#kledijKeuzeDiv").show();
+				
+			},           
+        
+			error:function(result){
+				alert('Fout 01 - Probeer later opnieuw');
+			}           
+        
+             
+		});
+      
+    });
+	
+	// - - -
+	// Table
+	// - - -
+	
+	var table = $('.datatable_producten').DataTable( {
+
+	"order": [[ 1, 'asc' ]],
+        "displayLength": 25,
+		"sort": false,
+		"paging": false,
+		"stateSave": false,
+		
+	
+		"language": {
+               
+			    "sProcessing": "Bezig...",
+				"sLengthMenu": "_MENU_ resultaten weergeven",
+				"sZeroRecords": "Geen resultaten gevonden",
+				"sInfo": "_START_ tot _END_ van _TOTAL_ resultaten",
+				"sInfoEmpty": "Geen resultaten om weer te geven",
+				"sInfoFiltered": " (gefilterd uit _MAX_ resultaten)",
+				"sInfoPostFix": "",
+				"sSearch": "Zoeken:",
+				"sEmptyTable": "Geen producten gevonden",
+				"sInfoThousands": ".",
+				"sLoadingRecords": "Een moment geduld aub - bezig met laden...",
+				"oPaginate": {
+					"sFirst": "Eerste",
+					"sLast": "Laatste",
+					"sNext": "Volgende",
+					"sPrevious": "Vorige"
+						   
+						}
+			
+	}
+
+	} );
+	
+	$('#butGetWwData').click();
+	
+	// $('input').focus();
+	$('div.dataTables_filter input').blur(); 
+
+
+	
+})
+
+</script>
+
+<script>
+
+function jsOpenHandleiding(){
+	
+	 window.open('/_files/handleidingen/webshop/handleiding_webshop.pdf');
+	
+}
+
+function jsCloseFotoPopup() {
+	
+	$infoBoxFoto.dialog('close');
+}
+
+
+function jsUrldecode(url) {
+  return decodeURIComponent(url.replace(/\+/g, ' '));
+}
+
+function jsPopupToevoegen() {
+	
+			
+		$runStatus = $('#toevoegen').attr('runStatus');
+		
+		if ($runStatus == "*NOK") {
+		  
+			$( "#toevoegen" ).dialog({
+			  resizable: true,
+			  modal: true,
+			  minWidth: 500,
+			  title: 'Toevoegen aan winkelwagen',
+			  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+			  buttons: {
+
+				Cancel: function() {
+				  $( this ).dialog( "close" );
+				}
+			  }
+			});
+		}
+		  		
+		if ($runStatus != "*NOK") {
+		  
+			$( "#toevoegen" ).dialog({
+			  resizable: true,
+			  modal: true,
+			  minWidth: 500,
+			  title: 'Toevoegen aan winkelwagen',
+			  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+			  buttons: {
+				  
+				"Toevoegen": function() {
+					
+					var $set = $('.maten');
+					var len = $set.length;
+					
+					$('.maten').each(function(i, obj) {
+					
+					
+						$maat = $(obj).val();
+						$arId = $(obj).attr('data-arId');
+						$paId = $(obj).attr('data-paId');
+						$pkId = $(obj).attr('data-pkId');
+						
+						// - - - - - - - - - - - - -
+						// Create "winkelwagen-lijn"
+						// - - - - - - - - - - - - -
+						
+						$.ajax({
+							url: "webshop.ajax03.php?",
+							type: "POST",
+							timeout: 10000,
+							cache: false,
+							async: true,
+							data: {'arId': $arId, 'maat': $maat, 'pkId': $pkId},
+							success:function(result){
+							 
+								// $(this).css("background-color",""); 
+								// alert(result);				  
+								json = $.parseJSON(result);
+							
+								if (i == len - 1) {
+									$("#butGetWwData").click();
+									
+								}
+									  
+							},           
+						
+							error:function(result){
+								alert('Unexpected Error 03');
+							}           
+							 
+						});
+						
+					});
+				  
+			
+					$( this ).dialog( "close" );
+					alert("Product(en) toegevoegd aan uw winkelwagen");
+					$("#butGetWwData").click();
+			  
+				},
+				Cancel: function() {
+				  $( this ).dialog( "close" );
+				}
+			  }
+			});
+		}
+
+	
+}
+
+
+
+</script>
+
+
+</head>
+
+<body>
+
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(Sx::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+$db2 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+$db3 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+$db4 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(Sx::GetClassPath("eba.class"));
+include_once(Sx::GetSxClassPath("sessions.class"));
+
+
+echo '<link rel="stylesheet" href="' . $_SESSION["SX_BASEDIR"] . '/bootstrap/css/bootstrap_extract.css" />';
+
+
+// -----------
+// Get USER-id
+// -----------
+
+$sessionId = $_SESSION["SEID"];
+
+$userId = SX_sessions::GetSessionUserId($sessionId);
+
+
+// -----------------------------
+// Get image "vergrootglas-zoom"
+// -----------------------------
+
+$img_vergrootglas_zoom = SX::GetSiteImgPath('vergrootglas_zoom.gif');
+
+// ------
+// Header
+// ------
+
+echo "<div style='padding-left: 5px; padding-right: 5px;'>";
+
+echo "<h1>Webshop</h1>";
+
+// -------------------
+// Only when logged in
+// -------------------
+
+if (false){
+    if ($userId != 'webmaster' && $userId <> 'jpeeters' && $userId <> 'lpeeters') {
+	    echo "<div class=\"jumbotron\" style=\"text-align: center\">";
+	    echo "<h1 style='color: red'>Webshop tijdelijk afgesloten</h1>";
+	    echo "Wegens leveringsproblemen bij onze leverancier, kunnen we op dit moment geen redelijke levertermijnen garanderen";
+	    echo "<br/><br/>";
+        echo "Onze oprechte excuses.";
+	    echo "</div>";
+
+	    return;
+    }
+}
+
+
+if ($userId == '*NONE') {
+	
+?>
+	<div class="jumbotron" style="text-align: center">
+		<div style="float:center; height: 50px"><span style="color: #1F63B9; font-size: 500%" class="glyphicon glyphicon-shopping-cart"></span></div>
+		<div><h2 style="color: green">De webshop is exclusief voor leden van Schelle Sport.<br/>
+		Gelieve aan te melden.</h2>
+		<span style='color: green; font-size: 100%' class='glyphicon glyphicon-hand-right'></span>&nbsp;&nbsp;je vindt je gebruikers-id onderaan rechts op je lidkaart<br/>
+		</div>
+		<br style="clear:both">
+		<button class="btn btn-success login"  href="./sx/apps/login.php"><span class="glyphicon glyphicon-log-in"></span> Aanmelden</button>
+		<br style="clear:both">
+		<br style="clear:both">
+			<span style='color: green; font-size: 100%' class='glyphicon glyphicon-hand-right'></span>&nbsp;&nbsp;Wachtwoord vergeten? Klik <a href="/index.php?app=article_subpage&parm1=90&layout=full">HIER</a><br/>
+		<br style="clear:both">
+		<button class="btn btn-default"  onclick="jsOpenHandleiding()" href="./sx/apps/login.php"><span style="color: blue; font-size: 125%" class="glyphicon glyphicon-info-sign"></span> Handleiding</button>		
+		
+	</div>
+
+</div>
+
+
+<?php
+
+	return;
+	
+}
+
+// ------------------
+// Vraag kledijpakket
+// ------------------
+
+$kledijKeuzeUser = SSP_eba::GetKledijKeuze($userId);
+$voetbalCat = SSP_eba::GetVoetbalCat($userId);
+
+if ($kledijKeuzeUser == '*OPEN' && $voetbalCat != 'G') {
+	
+?>	
+
+	
+	<div class="jumbotron" style="padding-left: 10px">
+		<div style="text-align: center; float: left; margin-right: 20px">
+			<span style="color: #1F63B9; font-size: 800%" class='glyphicon glyphicon-info-sign'></span>
+		</div>
+		<b>Omdat voor het seizoen 2017-2018 dezelfde kledinglijn wordt aangehouden als seizoen 2016-2017, laten we aan u de keuze:</b><br/><br/>
+		
+		
+		<input type="radio" name="inpKledijKeuze" value="*BEPERKT">&nbsp;1) Beperkt Kledijpakket ZONDER trainingspak + <b>Webshop-tegoed van 35 EUR *</b><br/><br/>
+		<input type="radio" name="inpKledijKeuze" value="*VOLLEDIG">&nbsp;2) Volledig kledijpakket <b>MET trainingspak (of sweater + trainingsbroek voor seniors)</b>
+		<br/><br/>
+		<button style="padding-left: 5px" class="btn btn-success"  id="butKledijKeuze">Klik hier om uw keuze te registreren</button>
+		<br/><br/><br/>
+		(*) Het webshop-	 wordt automatisch toegekend vanaf dat (het voorschot van) het lidgeld betaald is.
+		<br/><br/>Opgelet: Nadat u deze keuze gemaakt hebt, kan deze enkel door onze administratie gewijzigd worden.
+	</div>
+	
+</div>
+
+<?php	
+	return;	
+	
+}
+	
+
+if ($kledijKeuzeUser == '*OPEN' && $voetbalCat == 'G') {
+	
+?>	
+	
+	<div class="jumbotron" style="padding-left: 10px">
+		<div style="text-align: center; float: left; margin-right: 20px">
+			<span style="color: #1F63B9; font-size: 800%" class='glyphicon glyphicon-info-sign'></span>
+		</div>
+		<b>Omdat voor het seizoen 2017-2018 dezelfde kledinglijn wordt aangehouden als seizoen 2016-2017, laten we aan u de keuze:</b><br/><br/>
+		
+		
+		<input type="radio" name="inpKledijKeuze" value="*BEPERKT">&nbsp;1) Webshop-tegoed van 35 EUR *<br/><br/>
+		<input type="radio" name="inpKledijKeuze" value="*VOLLEDIG">&nbsp;2) Kledijpakket (trainingspak)</b>
+		<br/><br/>
+		<button style="padding-left: 5px" class="btn btn-success"  id="butKledijKeuze">Klik hier om uw keuze te registreren</button>
+		<br/><br/><br/>
+		(*) Het webshop-tegoed wordt automatisch toegekend vanaf dat het lidgeld betaald is.
+		<br/><br/>Opgelet: Nadat u deze keuze gemaakt hebt, kan deze enkel door de webmaster gewijzigd worden.
+	</div>
+	
+</div>
+
+<?php	
+	return;	
+	
+}
+// ------------
+// Header-block
+// ------------
+
+?>
+
+<div class="panel panel-info">
+  <div class="panel-heading">
+	<div style="float: left">
+		<span style="color: #1F63B9; font-size: 120%" class='glyphicon glyphicon-user'></span>
+	</div>
+	<div style="float:left; margin-left: 10px">
+		<strong>Uw Contactgegevens</strong>
+	</div>
+	<br style="clear: both">
+  </div>
+  <div class="panel-body">
+	<span id='wwNaam'>&nbsp;</span>
+	&nbsp;- Mail-adres: <span id='wwMail'>&nbsp;</span>
+	&nbsp;- Tel: <span id='wwTel'>&nbsp;</span>
+	&nbsp;- Status lidgeld: <span id='wwLidgeldStatus'></span>
+	<div id="kledijKeuzeDiv" style="margin-top: 5px; display: none"><span style="color: #1F63B9; font-size: 120%" class='glyphicon glyphicon-hand-right'></span> <b>Uw keuze betreffende kledijpakket:</b> <span id="kledijKeuzeTekst">xx</span></div>
+	<div id="kledijBonDiv" style="margin-top: 5px; display: none"><span style="color: #1F63B9; font-size: 120%" class='glyphicon glyphicon-hand-right'></span> <b>Uw webshop-tegoed:</b> <span id="kledijBon">xx</span> EUR - Reeds besteed: <span id="kledijbonBesteed">yy</span> EUR - <b>Nog te besteden: <span id="kledijBonRest">zz</span> EUR</b><span id = "kledijBonRest2"></span></div>
+
+  </div>
+</div>
+
+<div class="panel panel-info">
+  <div class="panel-heading">
+	<div style="float: left">
+		<span style="color: #1F63B9; font-size: 120%" class='glyphicon glyphicon-shopping-cart'></span>
+	</div>
+	<div style="float:left; margin-left: 10px">
+		<strong>Uw Winkelwagen</strong>
+	</div>
+	<br style="clear: both">
+  </div>
+  <div class="panel-body">
+	<div style="float: left" id="winkelwagen"></div>
+	<div style="float:right; height: 25px"><button class="btn" id="butPlaatsBestelling" disabled><span class='glyphicon glyphicon-ok'></span> Plaats Bestelling</button></div>
+	<div style="clear: both">&nbsp;</div>
+  </div>
+</div>
+
+<div class="jumbotron" style="padding-left: 10px; padding-top: 10px; padding-bottom: 10px; background-color: #F75E2B">
+
+    <table>
+
+       <tr>
+           <td style="width: 20px">
+               <span style="color: #1F63B9; font-size: 120%" class='glyphicon glyphicon-info-sign'></span>
+           </td>
+           <td>
+               <b>Klik <a href="https://schellesport.be/doc_openfile.php?code=BbHjOep" target="_blank">HIER</a> voor JAKO Matentabel (PDF).</b>
+           </td>
+       </tr>
+
+        <tr>
+            <td>
+                &nbsp;
+            </td>
+
+            <td>
+                Klik op tab  "Kledij in LIDGELD" om uw kledijpakket - inbegrepen in het lidgeld - te bestellen.
+            </td>
+        </tr>
+
+    </table>
+
+</div>
+
+<?php
+
+// -------------------
+// Ophalen "rubrieken"
+// -------------------
+
+$sqlStat = "Select * from eba_ru_rubrieken where ruRecStatus = 'A' order by ruSort";
+
+echo "<div id='tabs'>";
+
+echo "<ul>";
+$db4->Query($sqlStat);
+while ($ruRec = $db4->Row()) {
+	
+	// ---------------
+	// Check Doelgroep
+	// ---------------
+	
+	if ($ruRec->ruDoelgroep > 0)
+		$doelgroepOK = SSP_eba::ChkDoelgroep($userId, $ruRec->ruDoelgroep);
+	else 
+		$doelgroepOK = true;
+	
+	if ($doelgroepOK  != true) {
+		continue; 
+	}
+	
+	
+	echo "<li><a href='#tab$ruRec->ruId'>$ruRec->ruNaam</a></li>";
+}
+
+
+echo "</ul>";
+
+
+
+$db4->Query($sqlStat);
+while ($ruRec = $db4->Row()) {
+	
+	// ---------------
+	// Check Doelgroep
+	// ---------------
+	
+	if ($ruRec->ruDoelgroep > 0)
+		$doelgroepOK = SSP_eba::ChkDoelgroep($userId, $ruRec->ruDoelgroep);
+	else 
+		$doelgroepOK = true;
+	
+	if ($doelgroepOK  != true) {
+		continue; 
+	}
+	
+	echo "<div id='tab$ruRec->ruId'>";
+	
+	if ($ruRec->ruOmschrijving > " ") {
+		echo "<div style='float:left'>";
+		echo "<span style='color: #1F63B9; font-size: 150%' class='glyphicon glyphicon-info-sign'></span>";
+		echo "</div>";
+		echo "<div style='float:left; margin-left: 10px'>";		
+		echo nl2br($ruRec->ruOmschrijving);
+		echo "</div>";
+	}
+	
+	// -------------------
+	// Ophalen "producten"
+	// --------------------
+
+	$sqlStat  = "Select * From eba_ar_artikels inner join eba_ra_rubriek_artikels on raRubriek = $ruRec->ruId and raArtikel = arId order by raSort ";
+
+	if (!$db->Query($sqlStat)) { 
+	  return $sqlStat;
+	}
+
+	$sqlStat  = "Select * From eba_pk_pakketten inner join eba_ra_rubriek_artikels on raRubriek = $ruRec->ruId and raPakket = pkId order by raSort ";
+
+	if (!$db3->Query($sqlStat)) { 
+	  return $sqlStat;
+	}
+		  
+	elseif ($db->RowCount() < 1 and $db3->RowCount() < 1)
+	  echo "Geen artikels..."; 
+
+	else {
+
+
+		echo '<br/>';
+
+		// ------------------
+		// Hoofding overzicht
+		// ------------------
+		
+		echo '<table class="datatable_producten display cell-border" cellspacing="0" width="100%">';
+	   
+			echo '<thead style="text-align: left;">';
+
+				echo '<tr>';
+					echo '<th>Product</th>';
+					echo '<th>Afbeelding</th>';
+				echo '</tr>';
+
+			echo '</thead>';
+			
+			while ($pkRec = $db3->Row()) {
+				
+				// -----------------
+				// Check kledijkeuze
+				// -----------------
+				
+				
+				if ($pkRec->pkKledijKeuze == '*VOLLEDIG' and $kledijKeuzeUser <> '*VOLLEDIG')
+					continue;
+				if ($pkRec->pkKledijKeuze == '*BEPERKT' and $kledijKeuzeUser <> '*BEPERKT')
+					continue;				
+				
+				// ---------------
+				// Check doelgroep
+				// ---------------
+				
+				if ($pkRec->pkDoelgroep > 0) {
+					
+					$doelgroepOK = SSP_eba::ChkDoelgroep($userId, $pkRec->pkDoelgroep);
+
+					if ($doelgroepOK != true)
+						continue;
+			
+				}
+						
+
+				$fotoPath = "";
+				$fotoGrootPath = "";
+				
+				$prijs = "";
+				if ($pkRec->pkPrijs > 0)
+					$prijs = "Prijs: $pkRec->pkPrijs EUR";
+				if ($pkRec->pkInLidgeld == 1)
+					$prijs = "<br/>Prijs: IN LIDGELD INBEGREPEN";		
+				
+				echo '<tr style="valign: top">';
+				
+					// -----
+					// Naam
+					// ----
+					
+					echo "<td style='vertical-align: top'>"; 
+						echo "<div  style='margin-top: 0px'><h2>$pkRec->pkNaam</h2></div>";
+						
+						echo '<div style="margin-top: 25px;">';
+							if (trim($pkRec->pkOmschrijving) > " ") {
+								echo "<span style='font-weight: bold;'>Extra omschrijving:</span><br style='margin-bottom: 5px' />";
+								echo nl2br($pkRec->pkOmschrijving);
+							}
+							echo "<br/>";
+							echo $prijs;
+							echo '<br/>';
+							echo '<br/>';;
+							echo "<button class='btn butToevoegen' data-type='P' id='$pkRec->pkId' style='background-color: green; color: white'><span class='glyphicon glyphicon-plus'></span> Aan winkelwagen toevoegen</button>";
+						echo "</div>";
+					echo "</td>"; 
+					
+					// ----
+					// Foto
+					// ----
+			 
+					echo "<td>"; 
+					
+						if ($fotoPath)
+							echo "<img src='$fotoPath'>";
+						else
+							echo "Geen afbeelding beschikbaar...";
+							
+					echo "</td>"; 
+					
+				
+				echo "</tr>";
+	   
+			}			
+			
+			while ($arRec = $db->Row()) { 
+			
+				// ---------------
+				// Check Doelgroep
+				// ---------------
+				
+				if ($arRec->arDoelgroep > 0)
+					$doelgroepOK = SSP_eba::ChkDoelgroep($userId, $arRec->arDoelgroep);
+				else 
+					$doelgroepOK = true;
+				
+				if ($doelgroepOK  != true) {
+					continue; 
+				}
+			
+				// Prijzen
+				$prijs = "";
+				if ($arRec->arPrijs > 0 && $arRec->arPrijsPerMaat != 1)
+					$prijs = "<br/>Prijs: $arRec->arPrijs EUR ";
+
+				if ($arRec->arPrijsPerMaat == 1) {
+					
+					$hoogstePrijs = 0;
+					$laagstePrijs = 0;
+					$maatInfo = "";
+				
+					$sqlStat = "Select * From eba_am_artikelmaten where amArtikel = $arRec->arId order by amSort";
+					If ($db3->Query($sqlStat)){
+						
+						while ($amRec = $db3->Row()) { 
+						
+							$maatInfo .= "$amRec->amMaat ($amRec->amPrijs EUR)<br/>";
+						
+							if ($amRec->amPrijs < $laagstePrijs or $laagstePrijs == 0)
+								$laagstePrijs = $amRec->amPrijs;
+							if ($amRec->amPrijs > $hoogstePrijs)
+								$hoogstePrijs = $amRec->amPrijs;						
+						
+						}
+						
+						if ($laagstePrijs == $hoogstePrijs)
+							$prijs = "<br/>Prijs: $laagstePrijs EUR";
+						else
+							$prijs = "<br/>Prijs afhankelijk van de <a class='maatInfo' href='javascript:;' style='color: blue' info='$maatInfo'>maat</a>, tussen $laagstePrijs en $hoogstePrijs EUR";
+						
+						
+					}
+					
+					
+					
+					
+				}
+				
+				
+			
+			
+				// Foto...
+				$fotoPath = '';
+				$fotos = json_decode($arRec->arFoto);
+				if ($fotos) {
+				
+					foreach ($fotos as $foto) {
+
+						if (strpos($foto->type, "image") !== false) {
+							$fotoPath = $foto->name;
+							break;
+						}
+						
+
+					}
+				}
+			
+				// Foto groot...
+				$fotoGrootPath = '';
+				$fotos = json_decode($arRec->arFotoGroot);
+				if ($fotos) {
+				
+					foreach ($fotos as $foto) {
+
+						if (strpos($foto->type, "image") !== false) {
+							$fotoGrootPath = $foto->name;
+							break;
+						}
+						
+
+					}
+				}
+	   
+				echo '<tr style="valign: top">';
+				
+					// -----
+					// Naam
+					// ----
+					
+					echo "<td style='vertical-align: top'>"; 
+						echo "<div  style='margin-top: 0px'><h2>$arRec->arNaam</h2></div>";
+						
+						echo '<div style="margin-top: 25px;">';
+							if (trim($arRec->arOmschrijving) > " ") {
+								echo "<span style='font-weight: bold;'>Extra omschrijving:</span><br style='margin-bottom: 5px' />";
+								echo nl2br($arRec->arOmschrijving);
+							}
+							echo "<br/>";
+							echo $prijs;
+							echo '<br/>';
+							echo '<br/>';
+							echo "<button class='btn butToevoegen' data-type='A' id='$arRec->arId' style='background-color: green; color: white'><span class='glyphicon glyphicon-plus'></span> Aan winkelwagen toevoegen</button>";
+						echo "</div>";
+					echo "</td>"; 
+					
+					// ----
+					// Foto
+					// ----
+			 
+					echo "<td>"; 
+					
+						if ($fotoPath) {
+
+							if ($fotoGrootPath <= " ")
+								echo "<img src='$fotoPath'>";
+							else {
+								echo "<div data-title='$arRec->arNaam' data-path='$fotoGrootPath' class='fotoKlein' style=\"height: 300px; width: 300px;  background-image: url('$fotoPath'); background-repeat: no-repeat; text-align: left; \"><img style='display:none;  margin: 0; padding: 5px' src='$img_vergrootglas_zoom'/></div>";
+							}
+						}
+							
+						else
+							echo "Geen afbeelding beschikbaar...";
+							
+					echo "</td>"; 
+					
+				
+				echo "</tr>";
+	   
+			}
+	  
+		echo "</table>";
+		  
+	}  
+	
+	echo "</div>";
+
+}
+
+echo "</div>";
+
+echo "</div>";
+
+$db->Close();  
+
+?>
+
+<div style="display: none;">
+	<button id="butGetWwData">Get data</button>
+	<button id="butDelWwData" data="abc">Wis winkelwagen lijn</button>
+</div>
+ 
+<div id="toevoegen" runStatus="*INIT" title="Basic dialog" style="display: none; width: 500px"></div>
+  
+<div id="toonMaten" title="Basic dialog" style="display: none; width: 500px"></div>
+
+<div id="bevestigBestelling" title="Basic dialog" style="display: none; width: 500px"></div>
+
+<div id="toonAfbeelding" title="Basic dialog" style="display: none; width: 500px"></div>
+
+<div id="wachten" style="display:none"></div>
+
+<style>
+
+#wachten
+{
+	background: url(loading.gif) no-repeat center center;
+	height: 100px;
+	width: 100px;
+	position: fixed;
+	z-index: 1000;
+	left: 50%;
+	top: 50%;
+	margin: -25px 0 0 -25px;
+}
+</style>
+
+
+</body>
+</html>

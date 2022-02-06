@@ -1,0 +1,681 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+
+<script>
+document.title = 'Schelle Sport - Webshop';
+$("meta[name='og:description']").attr('content', 'Schelle Sport - Webshop');
+</script>
+
+<script>
+
+// ---------------
+// JQUERY-function
+// ---------------
+
+$(document).ready(function(){
+	
+	$( "#tabs" ).tabs();
+	$( "#tabs" ).tabs( "option", "active", 0 );
+	
+	// - - - - - - - - -
+	// Display Maat-info
+	// - - - - - - - - -
+
+	$infoBox = $( "#toonMaten" ).dialog({
+		  resizable: true,
+		  modal: false,
+		  minWidth: 300,
+		  title: 'Beschikbare maten',
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); }
+
+		});
+	
+	
+	$('.maatInfo').mouseover(function() { 	
+	
+		$maatInfo = $(this).attr('info');
+
+		$("#toonMaten").html($maatInfo);
+		
+		$infoBox.dialog('open');
+	
+	
+	})
+	
+	$('.maatInfo').mouseout(function() { 	
+	
+		$infoBox.dialog('close');
+	
+	
+	})	
+	
+	
+	// - - - - - - - - - -
+	// Button "toevoegen"
+	// - - - - - - - - - -
+	
+	$('.butToevoegen').click(function() { 
+		
+		$id = $(this).attr('id');
+		$type = $(this).attr('type');
+		
+		// - - - - - - - - - - - - 	
+		// Retrieve HTML dialog-box
+		// - - - - - - - - - - - - 
+		
+		$.ajax({
+			url: "webshop.ajax02.php?",
+			type: "POST",
+			timeout: 10000,
+			cache: false,
+			data: {'id': $id, 'type': $type},
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+			
+				$html = json.html;
+			
+			
+				$("#toevoegen").html($html);
+			
+ 					  
+			},           
+        
+			error:function(result){
+				alert('Unexpected Error');
+			}           
+             
+		});
+		
+	  
+		$( "#toevoegen" ).dialog({
+		  resizable: true,
+		  modal: true,
+		  minWidth: 500,
+		  title: 'Toevoegen aan winkelwagen',
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+		  buttons: {
+			  
+			"Toevoegen": function() {
+				
+				$('.maten').each(function(i, obj) {
+				
+				
+					$maat = $(obj).val();
+					$arId = $(obj).attr('data-arId');
+					$paId = $(obj).attr('data-paId');
+ 					$pkId = $(obj).attr('data-pkId');
+					
+					// - - - - - - - - - - - - -
+					// Create "winkelwagen-lijn"
+					// - - - - - - - - - - - - -
+					
+					$.ajax({
+						url: "webshop.ajax03.php?",
+						type: "POST",
+						timeout: 10000,
+						cache: false,
+						data: {'arId': $arId, 'maat': $maat, 'pkId': $pkId},
+						success:function(result){
+						 
+							// $(this).css("background-color",""); 
+							// alert(result);				  
+							json = $.parseJSON(result);
+						
+							$("#butGetWwData").click();
+								  
+						},           
+					
+						error:function(result){
+							alert('Unexpected Error');
+						}           
+						 
+					});
+					
+				});
+			  
+		
+				$( this ).dialog( "close" );
+			  
+  		  
+			},
+			Cancel: function() {
+			  $( this ).dialog( "close" );
+			}
+		  }
+		});
+		  
+
+	});
+	
+	
+	// - - - - - - - - - -
+	// Button "winkelwagen"
+	// - - - - - - - - - -
+	
+	$('#butWinkelwagen').click(function() { 
+
+		$url = $('#popupToevoegen').attr('url');
+		$url = $url + "?arId=0";
+		
+		$('#popupToevoegen').attr('href', $url);
+		
+		$('#popupToevoegen').click();
+	
+	
+	});	
+	
+	// - - - - - - - - - - - - - - - - 
+	// Button "Wissen winkelwagen-lijn"
+	// - - - - - - - - - - - - - - - - 
+	
+	$('#butDelWwData').click(function() { 
+
+		$wisId = $(this).attr('data');
+		
+		$.ajax({
+			url: "webshop.ajax04.php?",
+			type: "POST",
+			timeout: 10000,
+			cache: false,
+			data: {'wwId': $wisId},
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+				$("#butGetWwData").click();
+				
+			},           
+        
+			error:function(result){
+				alert('Unexpected Error');
+			}           
+        
+             
+		});		
+		
+	});		
+
+	// - - - - - - - - - - - - -  
+	// Button "Plaats bestelling"
+	// - - - - - - - - - - - - - 
+	
+	
+	$bevestigBestelling = $( "#bevestigBestelling" ).dialog({
+		  resizable: true,
+		  modal: true,
+		  minWidth: 600,
+		  title: 'Uw bestelling werd geplaatst',
+		  autoOpen: false,
+		  open: function(event, ui) { jQuery('.ui-dialog-titlebar-close').hide(); },
+		  buttons: {
+			OK: function() {
+			  $( this ).dialog( "close" );
+			}
+		  }
+
+		});
+	
+	
+	
+	
+	$('#butPlaatsBestelling').click(function() { 
+		
+		$.ajax({
+			url: "webshop.ajax05.php?",
+			type: "POST",
+			timeout: 10000,
+			cache: false,
+			success:function(result){
+				
+	 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+				$("#butGetWwData").click();
+				
+				$info = json.info;
+				
+				$("#bevestigBestelling").html($info);
+				
+				$bevestigBestelling.dialog('open');
+				
+				
+			},           
+        
+			error:function(result){
+				alert('Unexpected Error');
+			}           
+        
+             
+		});		
+		
+	});
+	
+	
+	// -----------------------------------------------------------	
+	// AJAX - Ophalen aantal lijnen in winkelwagen & totaal bedrag
+	// -----------------------------------------------------------	
+	
+    $("#butGetWwData").click(function(){
+
+		// $(this).css("background-color","#ffffff");
+      
+
+		$.ajax({
+			url: "webshop.ajax01.php?",
+			type: "POST",
+			timeout: 10000,
+			cache: false,
+			data: {'actie': 'follow'},
+			success:function(result){
+  			 
+				// $(this).css("background-color",""); 
+				// alert(result);				  
+				json = $.parseJSON(result);
+			
+				$('#wwNaam').html(json.voornaamNaam);
+				$('#wwAdres').html(json.adres);
+				$('#wwPostnr').html(json.postnr);
+				$('#wwGemeente').html(json.gemeente);
+				$('#wwMail').html(json.mail);
+				$('#wwTel').html(json.tel);
+				$('#wwLidgeldStatus').html(json.lidgeldStatus);
+				$('#wwAantal').html(json.aantal);
+				$('#wwBedrag').html(json.bedrag);			
+ 				$('#winkelwagen').html(json.winkelwagen);
+				
+				if (json.aantal > 0)
+					$('#butPlaatsBestelling').removeAttr("disabled");
+				else
+					$('#butPlaatsBestelling').attr("disabled", "disabled");
+				
+			},           
+        
+			error:function(result){
+				alert('Unexpected Error');
+			}           
+        
+             
+		});
+      
+    });
+	
+	// - - -
+	// Table
+	// - - -
+	
+	var table = $('.datatable_producten').DataTable( {
+
+	"order": [[ 1, 'asc' ]],
+        "displayLength": 25,
+		"sort": false,
+		"paging": false,
+		"stateSave": true,
+		
+	
+		"language": {
+               
+			    "sProcessing": "Bezig...",
+				"sLengthMenu": "_MENU_ resultaten weergeven",
+				"sZeroRecords": "Geen resultaten gevonden",
+				"sInfo": "_START_ tot _END_ van _TOTAL_ resultaten",
+				"sInfoEmpty": "Geen resultaten om weer te geven",
+				"sInfoFiltered": " (gefilterd uit _MAX_ resultaten)",
+				"sInfoPostFix": "",
+				"sSearch": "Zoeken:",
+				"sEmptyTable": "Geen producten gevonden",
+				"sInfoThousands": ".",
+				"sLoadingRecords": "Een moment geduld aub - bezig met laden...",
+				"oPaginate": {
+					"sFirst": "Eerste",
+					"sLast": "Laatste",
+					"sNext": "Volgende",
+					"sPrevious": "Vorige"
+						   
+						}
+			
+	}
+
+	} );
+	
+	$('#butGetWwData').click();
+	
+	$('input').focus();
+
+
+	
+})
+
+</script>
+
+</head>
+
+<body>
+
+<?php
+
+// -------		
+// Classes
+// -------    
+    
+include(Sx::GetSxClassPath("mysql.incl"));	// Creates a $db object	
+$db2 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+$db3 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+$db4 = new MySQL(true, $sql_database, $sql_server, $sql_userId, $sql_password);
+
+include_once(SX::GetSxClassPath("tools.class"));
+include_once(Sx::GetClassPath("ploegen.class"));
+include_once(Sx::GetClassPath("clubs.class"));
+include_once(Sx::GetSxClassPath("sessions.class"));
+
+
+echo '<link rel="stylesheet" href="' . $_SESSION["SX_BASEDIR"] . '/bootstrap/css/bootstrap_extract.css" />';
+
+
+// -----------
+// Get USER-id
+// -----------
+
+$sessionId = $_SESSION["SEID"];
+
+$userId = SX_sessions::GetSessionUserId($sessionId);
+
+
+echo "<div style='padding-right: 5px; border: 5px solid'>";
+
+// ------
+// Header
+// ------
+
+echo "<h1>Webshop</h1>";
+
+// -------------------
+// Only when logged in
+// -------------------
+
+if ($userId == '*NONE') {
+
+	echo '<div class="alert alert-info">';	
+	echo 'De webshop is enkel toegankelijk voor leden van Schelle Sport. ';
+	echo "Gelieve aan te melden (je vindt je gebruikers-id op je lidkaart)";
+	echo '</div>';
+	
+	echo "<br/>";
+	echo "<button class='btn login'  href='./sx/apps/login.php'><span class='glyphicon glyphicon-log-in'></span> Aanmelden</button>";
+	echo "<br/>";
+	echo "<br/>";
+	return;
+	
+	echo "</div>";
+
+}
+
+
+// ------------
+// Header-block
+// ------------
+
+?>
+
+<div class="panel panel-info">
+  <div class="panel-heading"><span class='glyphicon glyphicon-user'></span> <strong>Uw Contact-gegevens</strong></div>
+  <div class="panel-body">
+	<span id='wwNaam'>&nbsp;</span>
+	&nbsp;- Mail-adres: <span id='wwMail'>&nbsp;</span>
+	&nbsp;- Tel: <span id='wwTel'>&nbsp;</span>
+	&nbsp;- Status lidgeld: <span id='wwLidgeldStatus'>
+  </div>
+</div>
+
+<div class="panel panel-info">
+  <div class="panel-heading"><span class='glyphicon glyphicon-shopping-cart'></span> <strong>Uw Winkelwagen</strong></div>
+  <div class="panel-body">
+	<div style="float: left" id="winkelwagen"></div>
+	<div style="float:right; height: 25px"><button class="btn" id="butPlaatsBestelling" disabled><span class='glyphicon glyphicon-ok'></span> Plaats Bestelling</button></div>
+	<div style="clear: both">&nbsp;</div>
+  </div>
+</div>
+
+<?php
+
+// -------------------
+// Ophalen "rubrieken"
+// -------------------
+
+$sqlStat = "Select * from eba_ru_rubrieken order by ruSort";
+
+
+
+echo "<div id='tabs'>";
+
+echo "<ul>";
+$db4->Query($sqlStat);
+while ($ruRec = $db4->Row()) {
+	
+	echo "<li><a href='#tab$ruRec->ruId'>$ruRec->ruNaam</a></li>";
+}
+
+
+echo "</ul>";
+
+
+
+$db4->Query($sqlStat);
+while ($ruRec = $db4->Row()) {
+	
+	echo "<div id='tab$ruRec->ruId'>";
+	
+	// -------------------
+	// Ophalen "producten"
+	// --------------------
+
+	$sqlStat  = "Select * From eba_ar_artikels inner join eba_ra_rubriek_artikels on raRubriek = $ruRec->ruId and raArtikel = arId order by raSort ";
+
+	if (!$db->Query($sqlStat)) { 
+	  return $sqlStat;
+	}
+
+	$sqlStat  = "Select * From eba_pk_pakketten where pkId = 2 ";
+
+	if (!$db3->Query($sqlStat)) { 
+	  return $sqlStat;
+	}
+		  
+	elseif ($db->RowCount() < 1 and $db3->RowCount() < 1)
+	  echo "Geen artikels..."; 
+
+	else {
+
+
+		echo '<br/>';
+
+		// ------------------
+		// Hoofding overzicht
+		// ------------------
+		
+		echo '<table class="datatable_producten display cell-border" cellspacing="0" width="100%">';
+	   
+			echo '<thead style="text-align: left;">';
+
+				echo '<tr>';
+					echo '<th>Product</th>';
+					echo '<th>Afbeelding</th>';
+				echo '</tr>';
+
+			echo '</thead>';
+			
+			while ($pkRec = $db3->Row()) {
+					
+				
+				$prijs = "";
+				if ($pkRec->pkPrijs > 0)
+					$prijs = "Prijs: $pkRec->pkPrijs EUR";
+				if ($pkRec->pkInLidgeld == 1)
+					$prijs = "Prijs: IN LIDGELD INBEGREPEN";		
+				
+				echo '<tr style="valign: top">';
+				
+					// -----
+					// Naam
+					// ----
+					
+					echo "<td>"; 
+						echo "<span style='valign: bottom'><b>$pkRec->pkNaam</b></span>";
+						echo '<br/>';
+						echo "<br/>";
+						echo $prijs;
+						echo '<br/>';
+						echo '<br/>';
+						echo "<button class='btn butToevoegen' type='P' id='$pkRec->pkId' style='background-color: green; color: white'><span class='glyphicon glyphicon-shopping-cart'></span> Aan winkelwagen toevoegen</button>";	
+					echo "</td>"; 
+					
+					// ----
+					// Foto
+					// ----
+			 
+					echo "<td>"; 
+					
+						if ($fotoPath)
+							echo "<img src='$fotoPath'>";
+						else
+							echo "Geen afbeelding beschikbaar...";
+							
+					echo "</td>"; 
+					
+				
+				echo "</tr>";
+	   
+			}			
+			
+			while ($arRec = $db->Row()) { 
+			
+				// Prijzen
+				$prijs = "";
+				if ($arRec->arPrijs > 0 && $arRec->arPrijsPerMaat != 1)
+					$prijs = "Prijs: $arRec->arPrijs EUR ";
+
+				if ($arRec->arPrijsPerMaat == 1) {
+					
+					$hoogstePrijs = 0;
+					$laagstePrijs = 0;
+					$maatInfo = "";
+				
+					$sqlStat = "Select * From eba_am_artikelmaten where amArtikel = $arRec->arId";
+					If ($db3->Query($sqlStat)){
+						
+						while ($amRec = $db3->Row()) { 
+						
+							$maatInfo .= "$amRec->amMaat ($amRec->amPrijs EUR)<br/>";
+						
+							if ($amRec->amPrijs < $laagstePrijs or $laagstePrijs == 0)
+								$laagstePrijs = $amRec->amPrijs;
+							if ($amRec->amPrijs > $hoogstePrijs)
+								$hoogstePrijs = $amRec->amPrijs;						
+						
+						}
+						
+						if ($laagstePrijs == $hoogstePrijs)
+							$prijs = "Prijs: $laagstePrijs EUR";
+						else
+							$prijs = "Prijs afhankelijk van de <a class='maatInfo' style='color: blue' info='$maatInfo'>maat</a>, tussen $laagstePrijs en $hoogstePrijs EUR";
+						
+						
+					}
+					
+					
+					
+					
+				}
+				
+				
+			
+			
+				// Foto...
+				$fotoPath = '';
+				$fotos = json_decode($arRec->arFoto);
+				if ($fotos) {
+				
+					foreach ($fotos as $foto) {
+
+					  if (strpos($foto->type, "image") !== false)
+						$fotoPath = $foto->name;
+
+					}
+				}
+
+	   
+				echo '<tr style="valign: top">';
+				
+					// -----
+					// Naam
+					// ----
+					
+					echo "<td>"; 
+						echo "<span style='valign: bottom'><b>$arRec->arNaam</b></span>";
+						echo '<br/>';
+						echo nl2br($arRec->arOmschrijving);
+						echo "<br/>";
+						echo $prijs;
+						echo '<br/>';
+						echo '<br/>';
+						echo "<button class='btn butToevoegen' type='A' id='$arRec->arId' style='background-color: green; color: white'><span class='glyphicon glyphicon-shopping-cart'></span> Aan winkelwagen toevoegen</button>";
+					echo "</td>"; 
+					
+					// ----
+					// Foto
+					// ----
+			 
+					echo "<td>"; 
+					
+						if ($fotoPath)
+							echo "<img src='$fotoPath'>";
+						else
+							echo "Geen afbeelding beschikbaar...";
+							
+					echo "</td>"; 
+					
+				
+				echo "</tr>";
+	   
+			}
+	  
+		echo "</table>";
+		  
+	}  
+	
+	echo "</div>";
+
+}
+
+echo "</div>";
+
+echo "</div>";
+
+$db->Close();  
+
+echo "<div style='display: none;'>";
+echo "<button id='butGetWwData'>Get data</button>";
+echo "<button id='butDelWwData' data='abc'>Wis winkelwagen lijn</button>";
+echo "</div>";
+ 
+echo "<div id='toevoegen' title='Basic dialog' style='display: none; width: 500px'>";
+echo "</div>";
+  
+echo "<div id='toonMaten' title='Basic dialog' style='display: none; width: 500px'>";
+echo "</div>";
+
+  
+echo "<div id='bevestigBestelling' title='Basic dialog' style='display: none; width: 500px'>";
+echo "</div>";
+
+?>
+
+</body>
+</html>
