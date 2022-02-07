@@ -1141,6 +1141,248 @@
 
          }
 
+         // ========================================================================================
+         // Function: Padel Lessen: Verwerk Inschrijving
+         //
+         // In:	Event Inschrijving ID
+         //
+         // Return: Volledig verwerkt? (true/false)
+         //
+         // ========================================================================================
+         static function HdlPadelLesInschrijving($pInschrijving){
+
+             include(SX::GetSxClassPath("mysql.incl"));  // Create DB-object...
+
+             include_once(SX::GetClassPath("events.class"));
+             include_once(SX::GetClassPath("efin.class"));
+
+             // ------------
+             // ophalen info
+             // ------------
+
+             $sqlStat = "Select * from event_padel_les where id = $pInschrijving";
+             $db->Query($sqlStat);
+
+             if (! $eventRec = $db->Row())
+                 return false;
+
+             $lesmoment = $eventRec->lesmoment;
+             $naam = utf8_encode($eventRec->naam);
+             $deelnemer2 = utf8_encode($eventRec->deelnemer2);
+             $deelnemer3 = utf8_encode($eventRec->deelnemer3);
+             $deelnemer4 = utf8_encode($eventRec->deelnemer4);
+
+             $sqlStat = "Select * from padel_lm_lesmomenten where lmId = $lesmoment";
+             $db->Query($sqlStat);
+
+             if (! $lmRec = $db->Row())
+                 return false;
+
+             $lesmomentNaam = $lmRec->lmNaam;
+
+             // ----------------------
+             // Ophalen GM (als nodig)
+             // ----------------------
+
+             $GM = $eventRec->GM;
+             $GMn = $eventRec->GMn;
+
+             if (! $GM) {
+
+                 $GM = SSP_efin::GetNextGM('*PADEL_LES');
+                 $GMn = SSP_efin::CvtGmToNum($GM);
+
+             }
+
+             if (! $GM)
+                 return false;
+
+             // --------------------
+             // Ophalen "te betalen"
+             // --------------------
+
+             $teBetalen = 0;
+
+             if ($eventRec->aantalDeelnemers == 2)
+                $teBetalen = ($lmRec->lmPrijsPer2 * 2 * 6) + 0;
+             if ($eventRec->aantalDeelnemers == 3)
+                 $teBetalen = ($lmRec->lmPrijsPer3 * 3 * 6) + 0;
+             if ($eventRec->aantalDeelnemers == 4)
+                 $teBetalen = ($lmRec->lmPrijsPer4 * 4 * 6) + 0;
+
+             if (! $teBetalen)
+                 return false;
+
+             // -----------------------------
+             // Update inschrijvings-gegevens
+             // -----------------------------
+
+             $sqlStat = "Update  event_padel_les set teBetalen = $teBetalen, GM = '$GM', GMn = $GMn where id = $pInschrijving";
+             $db->Query($sqlStat);
+
+             // ---------------------------------------------------------------
+             // Zet inschrijvings-moment als VOLZET (voorlopig eenvoudige regel)
+             // ----------------------------------------------------------------
+
+             $sqlStat = "Update padel_lm_lesmomenten set lmVolzet = 1 where lmId = $lesmoment";
+             $db->Query($sqlStat);
+
+             // ----------------------------------------------
+             // Versturen bevestigingsmail naar de inschrijver
+             // ----------------------------------------------
+
+             $mailSubject = "Schelle Sport - Uw inschrijving voor padel-lessen";
+
+             $mailBody = "<body>". "\r\n";
+
+             $mailBody .= "<style>". "\r\n";
+             $mailBody .= "table, th, td { ". "\r\n";
+             $mailBody .= " border: 1px solid black; ". "\r\n";
+             $mailBody .= " border-collapse: collapse;". "\r\n";
+             $mailBody .= "} ". "\r\n";
+             $mailBody .= "th, td { ". "\r\n";
+             $mailBody .= "  padding: 5px; ". "\r\n";
+             $mailBody .= "  text-align: left;". "\r\n";
+             $mailBody .= " } ". "\r\n";
+             $mailBody .= "</style>". "\r\n";
+
+             $mailBody .= "Beste $eventRec->naam,". "\r\n";
+             $mailBody .= "<br/><br/>". "\r\n";
+
+             $mailBody .= "We noteerden jouw inschrijving voor onze padel lessen op: <b>$lesmomentNaam</b>";
+             $mailBody .= "<br/><br/>". "\r\n";
+
+             $mailBody .= "Naam: " . $naam;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Mail-adres: " . $eventRec->mail;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Tel: " . $eventRec->tel;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Aantal deelnemers: " . $eventRec->aantalDeelnemers;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Deelnemer 2: " . $deelnemer2;
+             $mailBody .= "<br/>" . "\r\n";
+
+             if ($deelnemer3){
+                 $mailBody .= "Deelnemer 3: " . $deelnemer3;
+                 $mailBody .= "<br/>" . "\r\n";
+             }
+
+             if ($deelnemer4){
+                 $mailBody .= "Deelnemer 4: " . $deelnemer4;
+                 $mailBody .= "<br/>" . "\r\n";
+             }
+
+             if ($eventRec->opmerkingen)
+                 $mailBody .= "<br/><b>Uw opmerkingen:</b><br/>" . nl2br(utf8_encode($eventRec->opmerkingen)) . "\r\n";
+
+             $GM = $eventRec->GM;
+             $teBetalen = $eventRec->teBetalen + 0;
+             $rekening = "BE56 0015 0154 9488";
+
+             $mailBody .= "<br/><br/><b>Gelieve het deelname bedrag - $teBetalen EUR - te betalen op rekening $rekening van Schelle Sport met gestructureerde mededeling: $GM</b>";
+
+
+             $mailBody .= "<br/><br/>". "\r\n";
+             $mailBody .= "Alvast bedankt voor je inschrijving!";
+
+             $mailBody .= "<br/><br/>". "\r\n";
+             $mailBody .= "Sportieve groet,";
+
+             $mailBody .= "<br/><br/>". "\r\n";
+             $mailBody .= "Schelle Sport Padel";
+
+             $mailBody .= "</body><br/><br/>". "\r\n";
+
+             $mailTo = $eventRec->mail;
+             $mailBCC = "gvh@vecasoftware.com";
+
+             $fromMail = "padel@schellesport.be";
+             $fromName = "Schelle Sport - Padel";
+
+             SX_tools::SendMail($mailSubject, $mailBody, $mailTo, $mailBCC, $fromMail, $fromName,'','UTF-8');
+
+
+             // -----------------------
+             // Mail naar Schelle Sport
+             // -----------------------
+
+             $mailSubject = "Schelle Sport - Inschrijving voor padel lessen";
+
+             $mailBody = "<body>". "\r\n";
+
+             $mailBody .= "<style>". "\r\n";
+             $mailBody .= "table, th, td { ". "\r\n";
+             $mailBody .= " border: 1px solid black; ". "\r\n";
+             $mailBody .= " border-collapse: collapse;". "\r\n";
+             $mailBody .= "} ". "\r\n";
+             $mailBody .= "th, td { ". "\r\n";
+             $mailBody .= "  padding: 5px; ". "\r\n";
+             $mailBody .= "  text-align: left;". "\r\n";
+             $mailBody .= " } ". "\r\n";
+             $mailBody .= "</style>". "\r\n";
+
+             $mailBody .= "Beste Team Padel,". "\r\n";
+             $mailBody .= "<br/><br/>". "\r\n";
+
+             $mailBody .= "Er was een inschrijving voor de Padel Clubavond op$ $lesmomentNaam" . "\r\n";
+             $mailBody .= "<br/><br/>". "\r\n";
+             $mailBody .= "Naam: $naam";
+             $mailBody .= "<br/><br/>". "\r\n";
+
+             $mailBody .= "Mail-adres: " . $eventRec->mail;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Tel: " . $eventRec->tel;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Aantal deelnemers: " . $eventRec->aantalDeelnemers;
+             $mailBody .= "<br/>" . "\r\n";
+
+             $mailBody .= "Deelnemer 2: " . $deelnemer2;
+             $mailBody .= "<br/>" . "\r\n";
+
+             if ($deelnemer3){
+                 $mailBody .= "Deelnemer 3: " . $deelnemer3;
+                 $mailBody .= "<br/>" . "\r\n";
+             }
+
+             if ($deelnemer4){
+                 $mailBody .= "Deelnemer 4: " . $deelnemer4;
+                 $mailBody .= "<br/>" . "\r\n";
+             }
+
+             if ($eventRec->opmerkingen)
+                 $mailBody .= "<br/><b>Opmerkingen:</b><br/>" . nl2br(utf8_encode($eventRec->opmerkingen)) . "\r\n";
+
+             $mailBody .= "<br/><br/>". "\r\n";
+             $mailBody .= "Sportieve groet,". "\r\n";
+             $mailBody .= "<br/><br/>Schelle Sport Secretariaat". "\r\n";
+
+             $mailBody .= "</body><br/><br/>". "\r\n";
+
+             $mailTo = $eventRec->mail;
+             $mailBCC = "";
+
+             $fromMail = "secretariaat@schellesport.be";
+             $fromName = "Schelle Sport - Secretariaat";
+
+             SX_tools::SendMail($mailSubject, $mailBody, "padel@schellesport.be", $mailBCC, $fromMail, $fromName,'','UTF-8');
+
+             // -------------
+             // Einde functie
+             // -------------
+
+             return true;
+
+         }
+
+
+
           // -----------
          // EINDE CLASS
          // ----------
